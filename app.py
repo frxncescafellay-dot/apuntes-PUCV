@@ -12,7 +12,7 @@ from google.genai import types
 
 # --- CONFIGURACION DE PAGINA ---
 st.set_page_config(
-    page_title="SkillPath — Apuntes Inteligentes en Vivo",
+    page_title="SkillPath — Apuntes en Tiempo Real con Gemini 3.6 Flash",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -27,7 +27,7 @@ FILE_DB = os.path.join(DIR_BASE, "cuadernos_db.json")
 for d in [DIR_BASE, DIR_AUDIO_RAW, DIR_PERFILES]:
     os.makedirs(d, exist_ok=True)
 
-MODELO_GEMINI = "gemini-2.5-flash"
+MODELO_GEMINI = "gemini-3.6-flash"
 
 # --- OBTENCION SEGURA DE API KEY ---
 def obtener_api_key():
@@ -205,14 +205,20 @@ div[data-testid="stFileUploader"] * {
     margin-bottom: 20px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
-.notes-display-box {
+
+.live-notes-box {
     background-color: #ffffff;
-    border: 1.5px solid #c4b5fd;
+    border: 2px solid #8b5cf6;
     border-radius: 14px;
-    padding: 24px;
+    padding: 20px;
+    min-height: 260px;
+    max-height: 480px;
+    overflow-y: auto;
+    font-size: 0.96rem;
     color: #1e1b4b;
-    box-shadow: 0 4px 16px rgba(109, 36, 236, 0.08);
-    margin-top: 16px;
+    line-height: 1.6;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.1);
+    margin-top: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -327,7 +333,7 @@ st.markdown(f"""
 <div class='brand-navbar'>
     <div class='brand-title'>
         <span>⚡ SkillPath</span>
-        <span style='font-size:0.9rem; font-weight:500; opacity:0.85;'>| Plataforma de Apuntes en Vivo & IA</span>
+        <span style='font-size:0.9rem; font-weight:500; opacity:0.85;'>| Plataforma de Apuntes Inteligentes & Audio en Vivo</span>
     </div>
     <div style='font-size:0.88rem; font-weight:600;'>🇨🇱 {hora_actual}</div>
 </div>
@@ -346,13 +352,13 @@ with pestañas_principales[0]:
     st.markdown(f"""
     <div class='welcome-card'>
         <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
-        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Apuntes estructurados en tiempo real.</p>
+        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Motor exclusivo: <b>Gemini 3.6 Flash</b>.</p>
     </div>
     <div class='stats-grid'>
         <div class='stat-card-1'><div class='stat-value'>{total_carpetas}</div><div class='stat-label'>Materias / Carpetas</div></div>
         <div class='stat-card-2'><div class='stat-value'>{total_clases}</div><div class='stat-label'>Clases Procesadas</div></div>
         <div class='stat-card-3'><div class='stat-value'>{len(db['grabaciones'])}</div><div class='stat-label'>Audios Grabados</div></div>
-        <div class='stat-card-4'><div class='stat-value'>⚡ Gemini Activo</div><div class='stat-label'>Autocorrección IA</div></div>
+        <div class='stat-card-4'><div class='stat-value'>⚡ Gemini 3.6 Flash</div><div class='stat-label'>Motor Inteligente</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -393,7 +399,7 @@ with pestañas_principales[0]:
                 st.markdown(f"### 📖 {nombre_mat}")
                 st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
                 
-                # --- SISTEMA DE GENERACIÓN INCREMENTAL EN VIVO CON BOTONES NATIVOS ---
+                # --- SISTEMA DE GENERACIÓN DE APUNTES EN VIVO CON GEMINI 3.6 FLASH ---
                 session_key_borrador = f"live_notes_draft_{modulo_actual}_{nombre_mat}"
                 session_key_last_proc = f"last_processed_audio_sig_{modulo_actual}_{nombre_mat}"
 
@@ -404,19 +410,19 @@ with pestañas_principales[0]:
 
                 st.markdown("""
                 <div class='app-card'>
-                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo: Redacción & Viñetas Automáticas</h4>
+                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo: Redacción & Organización Instantánea de Apuntes</h4>
                     <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
-                        Presiona el botón del micrófono nativo para grabar. Cada vez que captures voz, <b>Gemini</b> la analizará automáticamente, organizando los conceptos clave en viñetas y explicaciones estructuradas sobre la marcha.
+                        Usa los botones nativos del micrófono para grabar. Tan pronto entra la voz, <b>Gemini 3.6 Flash</b> estructura y redacta automáticamente los apuntes con viñetas, conceptos clave en negrita y explicaciones detalladas en el recuadro inferior.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
 
                 nom_sesion_live = st.text_input("Tema / Título de la clase:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"t_live_input_{nombre_mat}")
 
-                # Entrada de voz nativa de Streamlit (Sin iframes bloqueados)
+                # Entrada de voz nativa de Streamlit (Botones oficiales sin bloqueo de iframes)
                 c_rec_live, c_up_live = st.columns([1.2, 1.2])
                 with c_rec_live:
-                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>1. Grabar con Micrófono (Nativo):</p>", unsafe_allow_html=True)
+                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>1. Grabar con Micrófono (Botones Nativos):</p>", unsafe_allow_html=True)
                     audio_live_in = st.audio_input("Presiona para Grabar / Pausar / Detener:", key=f"live_audio_in_{modulo_actual}_{nombre_mat}")
 
                 with c_up_live:
@@ -437,7 +443,7 @@ with pestañas_principales[0]:
                     mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "m4a": "audio/mp4"}
                     mime_capturado = mime_map.get(ext_capturado, "audio/wav")
 
-                # PROCESAMIENTO REACTIVO INMEDIATO: Se ejecuta al detectar audio nuevo
+                # PROCESAMIENTO REACTIVO AUTOMÁTICO EN TIEMPO REAL CON GEMINI 3.6 FLASH
                 if audio_bytes_capturados is not None:
                     audio_sig = f"{len(audio_bytes_capturados)}_{hash(audio_bytes_capturados[:64])}"
                     
@@ -446,7 +452,7 @@ with pestañas_principales[0]:
                         if not client:
                             st.error("⚠️ Clave GEMINI_API_KEY no configurada en Secrets de Streamlit.")
                         else:
-                            with st.spinner("⚡ Gemini está escuchando la clase, redactando y organizando los conceptos clave en viñetas..."):
+                            with st.spinner("⚡ Gemini 3.6 Flash está escuchando la clase, organizando los conceptos clave y redactando los apuntes en viñetas..."):
                                 prompt_live = f"""
                                 Eres la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
                                 Título de la clase: {nom_sesion_live if nom_sesion_live.strip() else 'Clase Universitaria'}.
@@ -457,10 +463,10 @@ with pestañas_principales[0]:
                                 \"\"\"
                                 
                                 INSTRUCCIONES ESTRICTAS:
-                                1. Analiza con máxima precisión este nuevo fragmento de audio de la clase universitaria.
+                                1. Analiza con máxima precisión este fragmento de audio de la clase universitaria.
                                 2. Integra y redacta inmediatamente los nuevos temas, conceptos clave, autores y debates.
                                 3. Si en el borrador anterior hubo errores de dicción o conceptos incompletos, CORRÍGELOS integrando el nuevo contexto sin perder el hilo.
-                                4. Estructura el contenido con la siguiente plantilla profesional:
+                                4. Estructura el contenido con la siguiente plantilla formal y profesional:
                                    # 📌 Resumen Ejecutivo de la Clase
                                    ## 🎯 Objetivos y Temas Principales
                                    ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas claras, definiciones y explicaciones en negrita)
@@ -468,23 +474,13 @@ with pestañas_principales[0]:
                                    ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
                                 """
                                 try:
-                                    try:
-                                        resp = client.models.generate_content(
-                                            model="gemini-2.5-flash",
-                                            contents=[
-                                                types.Part.from_bytes(data=audio_bytes_capturados, mime_type=mime_capturado),
-                                                prompt_live
-                                            ]
-                                        )
-                                    except Exception:
-                                        resp = client.models.generate_content(
-                                            model="gemini-1.5-flash",
-                                            contents=[
-                                                types.Part.from_bytes(data=audio_bytes_capturados, mime_type=mime_capturado),
-                                                prompt_live
-                                            ]
-                                        )
-                                    
+                                    resp = client.models.generate_content(
+                                        model=MODELO_GEMINI,
+                                        contents=[
+                                            types.Part.from_bytes(data=audio_bytes_capturados, mime_type=mime_capturado),
+                                            prompt_live
+                                        ]
+                                    )
                                     st.session_state[session_key_borrador] = resp.text
                                     st.session_state[session_key_last_proc] = audio_sig
 
@@ -502,14 +498,14 @@ with pestañas_principales[0]:
                                         "ruta": r_dest
                                     })
                                     guardar_estado(db)
-                                    st.success("✅ ¡Apuntes actualizados y estructurados con viñetas en tiempo real!")
+                                    st.success("✅ ¡Apuntes redactados y organizados en tiempo real por Gemini 3.6 Flash!")
                                 except Exception as e:
-                                    st.error(f"Error procesando audio con Gemini: {e}")
+                                    st.error(f"Error procesando audio con Gemini 3.6 Flash: {e}")
 
-                # --- VISUALIZADOR DE APUNTES ESTRUCTURADOS EN VIVO ---
+                # --- CUADRO DE TEXTO: ORGANIZACIÓN DE APUNTES EN VIVO ---
+                st.markdown("##### 📝 Cuadro de Apuntes Estructurados en Tiempo Real:")
                 if st.session_state[session_key_borrador]:
-                    st.markdown("##### 📝 Apuntes Estructurados en Tiempo Real:")
-                    st.markdown(f"<div class='notes-display-box'>{st.session_state[session_key_borrador]}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='live-notes-box'>{st.session_state[session_key_borrador]}</div>", unsafe_allow_html=True)
 
                     c_save1, c_save2 = st.columns([2, 1])
                     with c_save1:
@@ -533,6 +529,12 @@ with pestañas_principales[0]:
                             st.session_state[session_key_borrador] = ""
                             st.session_state[session_key_last_proc] = ""
                             st.rerun()
+                else:
+                    st.markdown("""
+                    <div class='live-notes-box' style='color:#94a3b8; font-style:italic;'>
+                        Presiona el botón nativo del micrófono arriba para empezar a grabar. <b>Gemini 3.6 Flash</b> irá redactando aquí los apuntes organizados en viñetas, conceptos clave y explicaciones a medida que se desarrolla la clase...
+                    </div>
+                    """, unsafe_allow_html=True)
 
                 st.markdown("---")
 
@@ -572,7 +574,7 @@ with pestañas_principales[0]:
                                 if mensaje["rol"] == "user":
                                     st.markdown(f"**Tú:** {mensaje['texto']}")
                                 else:
-                                    st.markdown(f"**🤖 Gemini:** {mensaje['texto']}")
+                                    st.markdown(f"**🤖 Gemini 3.6 Flash:** {mensaje['texto']}")
 
                             with st.form(f"form_chat_{clase['id']}"):
                                 pregunta_usuario = st.text_input("Haz una pregunta sobre el contenido de esta clase:", placeholder="Ej. ¿Qué autores se citaron?", key=f"inp_chat_{clase['id']}")
@@ -589,7 +591,7 @@ with pestañas_principales[0]:
                                             """
                                             try:
                                                 resp_chat = client.models.generate_content(
-                                                    model="gemini-2.5-flash",
+                                                    model=MODELO_GEMINI,
                                                     contents=p_chat
                                                 )
                                                 if "chat" not in clases_guardadas[idx_real]:
