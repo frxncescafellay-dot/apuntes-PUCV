@@ -3,16 +3,20 @@ import io
 import json
 from datetime import datetime
 import pytz
+import pandas as pd
 import streamlit as st
-from audio_recorder_streamlit import audio_recorder
+import streamlit.components.v1 as components
 from PIL import Image
 from google import genai
 from google.genai import types
+import pypdf
+from docx import Document
+from pptx import Presentation
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# --- CONFIGURACION DE PAGINA ---
 st.set_page_config(
     page_title="SkillPath — Cuadernos & Grabación IA",
-    page_icon="🎓",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -28,7 +32,7 @@ for d in [DIR_BASE, DIR_AUDIO_RAW, DIR_PERFILES]:
 
 MODELO_GEMINI = "gemini-3.6-flash"
 
-# --- OBTENCIÓN SEGURA DE API KEY ---
+# --- OBTENCION SEGURA DE API KEY ---
 def obtener_api_key():
     if "GEMINI_API_KEY" in st.secrets:
         return st.secrets["GEMINI_API_KEY"]
@@ -41,135 +45,220 @@ def obtener_cliente_ia():
         return None
     return genai.Client(api_key=API_KEY_GEMINI)
 
-# --- ESTILOS VISUALES: THEME SKILLPATH / LMS DASHBOARD (PÚRPURA & VIOLETA) ---
-st.markdown("""
-<style>
-    /* Tipografía uniforme Segoe UI */
-    html, body, [class*="css"], .stApp {
-        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
-        background-color: #f4f5fa !important;
-        color: #1e1b4b;
-    }
+# --- ESTILOS CSS ---
+css_code = """<style>
+html, body, [class*="css"], .stApp { 
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important; 
+    background-color: #f4f5fa !important;
+    color: #1e1b4b;
+}
 
-    /* Barra Superior / Header Brand */
-    .brand-navbar {
-        background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
-        padding: 16px 24px;
-        border-radius: 16px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: #ffffff;
-        margin-bottom: 24px;
-        box-shadow: 0 8px 24px rgba(124, 58, 237, 0.25);
-    }
-    .brand-title {
-        font-size: 1.6rem;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+/* Header Brand */
+.brand-navbar {
+    background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%);
+    padding: 16px 24px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #ffffff;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(109, 36, 236, 0.25);
+}
+.brand-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff !important;
+}
 
-    /* Banner Bienvenida Dashboard */
-    .welcome-card {
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-        color: white;
-        border-radius: 16px;
-        padding: 24px;
-        margin-bottom: 24px;
-        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.2);
-    }
+/* BARRA LATERAL CON EL MORADO EXACTO DE SKILLPATH (#6214c7) */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #6214c7 0%, #520eb0 100%) !important;
+    border-right: 1.5px solid #450c96 !important;
+}
+section[data-testid="stSidebar"] * {
+    color: #f5f3ff !important;
+}
+section[data-testid="stSidebar"] h1, 
+section[data-testid="stSidebar"] h2, 
+section[data-testid="stSidebar"] h3, 
+section[data-testid="stSidebar"] h4 {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
 
-    /* Tarjetas de Métricas LMS */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-        margin-bottom: 24px;
-    }
-    .stat-card-1 {
-        background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-        color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(219, 39, 119, 0.25);
-    }
-    .stat-card-2 {
-        background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-        color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(109, 40, 217, 0.25);
-    }
-    .stat-card-3 {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(29, 78, 216, 0.25);
-    }
-    .stat-card-4 {
-        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-        color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(8, 145, 178, 0.25);
-    }
-    .stat-value { font-size: 1.8rem; font-weight: 800; margin: 0; line-height: 1.2; }
-    .stat-label { font-size: 0.85rem; font-weight: 600; opacity: 0.9; }
+/* Desplegables / Expanders dentro del Sidebar */
+section[data-testid="stSidebar"] div[data-testid="stExpander"] {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border-radius: 10px !important;
+}
+section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
+    background-color: rgba(255, 255, 255, 0.18) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+section[data-testid="stSidebar"] div[data-testid="stExpander"] summary * {
+    color: #ffffff !important;
+}
+section[data-testid="stSidebar"] div[data-testid="stExpander"] div[role="region"] {
+    background-color: transparent !important;
+}
 
-    /* Tarjetas de contenido */
-    .app-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 22px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-    }
+/* Cuadros de entrada en Sidebar */
+section[data-testid="stSidebar"] input[type="text"], 
+section[data-testid="stSidebar"] input[type="password"] {
+    background-color: #ede9fe !important;
+    color: #2e1065 !important;
+    border: 1.5px solid #c4b5fd !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}
+section[data-testid="stSidebar"] input[type="text"]:focus {
+    background-color: #ffffff !important;
+    border-color: #fbbf24 !important;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3) !important;
+}
 
-    /* Barra lateral */
-    section[data-testid="stSidebar"] {
-        background-color: #ffffff !important;
-        border-right: 1px solid #e2e8f0 !important;
-    }
+/* Selector desplegable en Sidebar (Selectbox) */
+section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+    background-color: #ede9fe !important;
+    border: 1.5px solid #c4b5fd !important;
+    border-radius: 8px !important;
+}
+section[data-testid="stSidebar"] div[data-baseweb="select"] * {
+    background-color: transparent !important;
+    color: #2e1065 !important;
+    font-weight: 700 !important;
+}
+section[data-testid="stSidebar"] div[data-baseweb="select"] svg {
+    fill: #2e1065 !important;
+    color: #2e1065 !important;
+}
 
-    /* Botones primarios violetas */
-    .stButton>button {
-        background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%) !important;
-        color: #ffffff !important;
-        border: none !important;
-        border-radius: 10px !important;
-        padding: 9px 22px !important;
-        font-weight: 750 !important;
-        box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25) !important;
-        transition: all 0.2s ease !important;
-    }
-    .stButton>button:hover {
-        background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(109, 40, 217, 0.35) !important;
-    }
+/* Botones en Sidebar */
+section[data-testid="stSidebar"] .stButton>button {
+    background: #ede9fe !important;
+    color: #4c1d95 !important;
+    border: 1.5px solid #ddd6fe !important;
+    border-radius: 8px !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+}
+section[data-testid="stSidebar"] .stButton>button:hover {
+    background: #ffffff !important;
+    color: #311068 !important;
+    border-color: #ffffff !important;
+    transform: translateY(-1px);
+}
+section[data-testid="stSidebar"] .stButton>button p {
+    color: #4c1d95 !important;
+    font-weight: 800 !important;
+}
 
-    /* Entradas y Textareas */
-    input[type="text"], textarea {
-        background-color: #f8fafc !important;
-        color: #1e1b4b !important;
-        border: 1.5px solid #cbd5e1 !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
-    }
-    input[type="text"]:focus, textarea:focus {
-        border-color: #7c3aed !important;
-        box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2) !important;
-    }
+/* Banner Dashboard y Tarjetas */
+.welcome-card {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.2);
+}
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.stat-card-1 { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(219, 39, 119, 0.25); }
+.stat-card-2 { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(109, 40, 217, 0.25); }
+.stat-card-3 { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(29, 78, 216, 0.25); }
+.stat-card-4 { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(8, 145, 178, 0.25); }
+.stat-value { font-size: 1.8rem; font-weight: 800; margin: 0; line-height: 1.2; }
+.stat-label { font-size: 0.85rem; font-weight: 600; opacity: 0.9; }
 
-    /* Pestañas */
-    button[data-baseweb="tab"] {
-        background-color: transparent !important;
-        color: #64748b !important;
-        font-weight: 750 !important;
-        padding: 10px 20px !important;
-        border-radius: 8px 8px 0 0 !important;
-    }
-    button[data-baseweb="tab"][aria-selected="true"] {
-        color: #6d28d9 !important;
-        border-bottom: 3px solid #6d28d9 !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+.app-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
 
-# --- GESTOR DE PERSISTENCIA (JSON) ---
+/* Botones Principales del Área Central */
+.stButton>button {
+    background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 9px 22px !important;
+    font-weight: 750 !important;
+    box-shadow: 0 4px 12px rgba(98, 20, 199, 0.25) !important;
+    transition: all 0.2s ease !important;
+}
+.stButton>button:hover {
+    background: linear-gradient(135deg, #7c24ec 0%, #6214c7 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(98, 20, 199, 0.35) !important;
+}
+.stButton>button p {
+    color: #ffffff !important;
+    font-weight: 750 !important;
+}
+
+/* Botones de Descarga en el contenido */
+div[data-testid="stDownloadButton"]>button {
+    background: #ede9fe !important;
+    color: #4c1d95 !important;
+    border: 1.5px solid #c4b5fd !important;
+    border-radius: 9px !important;
+    padding: 8px 18px !important;
+    font-weight: 750 !important;
+}
+div[data-testid="stDownloadButton"]>button:hover {
+    background: #ddd6fe !important;
+    color: #2e1065 !important;
+}
+div[data-testid="stDownloadButton"]>button p {
+    color: #4c1d95 !important;
+    font-weight: 750 !important;
+}
+
+/* Inputs y Textareas del Área Central */
+input[type="text"], textarea {
+    background-color: #f8fafc !important;
+    color: #1e1b4b !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+}
+input[type="text"]:focus, textarea:focus {
+    border-color: #7c3aed !important;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2) !important;
+}
+
+/* Pestañas */
+button[data-baseweb="tab"] {
+    background-color: transparent !important;
+    color: #64748b !important;
+    font-weight: 750 !important;
+    padding: 10px 20px !important;
+    border-radius: 8px 8px 0 0 !important;
+}
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: #6214c7 !important;
+    border-bottom: 3.5px solid #6214c7 !important;
+}
+</style>"""
+st.markdown(css_code, unsafe_allow_html=True)
+
+# --- GESTOR DE PERSISTENCIA ---
 def cargar_estado():
     if not os.path.exists(FILE_DB):
         data_inicial = {
@@ -190,9 +279,10 @@ def cargar_estado():
         return data_inicial
     with open(FILE_DB, "r", encoding="utf-8") as f:
         try:
-            return json.load(f)
+            data = json.load(f)
         except Exception:
-            return {"perfil": {"nombre": "Francesca Fellay", "universidad": "Universidad", "ubicacion": "Chile", "avatar": ""}, "modulos": {"6to semestre TSL": {"carpetas": {}}}, "grabaciones": []}
+            data = {"perfil": {"nombre": "Francesca Fellay", "universidad": "Universidad", "ubicacion": "Chile", "avatar": ""}, "modulos": {"6to semestre TSL": {"carpetas": {}}}, "grabaciones": []}
+    return data
 
 def guardar_estado(data):
     with open(FILE_DB, "w", encoding="utf-8") as f:
@@ -209,14 +299,14 @@ if avatar_path and os.path.exists(avatar_path):
     st.sidebar.image(avatar_path, width=110)
 else:
     st.sidebar.markdown("""
-        <div style='width:90px; height:90px; border-radius:50%; background:linear-gradient(135deg, #7c3aed, #4f46e5); display:flex; align-items:center; justify-content:center; font-size:2.4rem; color:white; margin-bottom:12px;'>
+        <div style='width:90px; height:90px; border-radius:50%; background:linear-gradient(135deg, #a78bfa, #ede9fe); display:flex; align-items:center; justify-content:center; font-size:2.4rem; margin-bottom:12px; border:2px solid #ffffff;'>
             👩‍🎓
         </div>
     """, unsafe_allow_html=True)
 
-st.sidebar.markdown(f"**{perfil.get('nombre', 'Francesca Fellay')}**")
-st.sidebar.caption(f"🏛️ {perfil.get('universidad', 'Universidad')}")
-st.sidebar.caption(f"📍 {perfil.get('ubicacion', 'Chile')}")
+st.sidebar.markdown(f"<h3 style='margin:0; font-size:1.15rem; color:#ffffff;'>{perfil.get('nombre', 'Francesca Fellay')}</h3>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<p style='margin:2px 0; font-size:0.85rem; color:#ede9fe;'>🏛️ {perfil.get('universidad', 'Universidad')}</p>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<p style='margin:2px 0 10px 0; font-size:0.85rem; color:#ede9fe;'>📍 {perfil.get('ubicacion', 'Chile')}</p>", unsafe_allow_html=True)
 
 with st.sidebar.expander("⚙️ Editar Datos del Perfil"):
     n_nom = st.text_input("Nombre:", value=perfil.get("nombre", "Francesca Fellay"))
@@ -237,9 +327,9 @@ with st.sidebar.expander("⚙️ Editar Datos del Perfil"):
         st.success("Perfil actualizado.")
         st.rerun()
 
-st.sidebar.markdown("---")
+st.sidebar.markdown("<hr style='border:0.5px solid rgba(255,255,255,0.2); margin:16px 0;'>", unsafe_allow_html=True)
 
-# --- SELECTOR DE MÓDULO (SEMESTRE / PERIODO) ---
+# --- SELECTOR DE MÓDULO ---
 st.sidebar.markdown("### 📚 Selector de Módulo")
 lista_modulos = list(db["modulos"].keys())
 if not lista_modulos:
@@ -279,7 +369,6 @@ pestañas_principales = st.tabs(["📁 Mis Carpetas & Clases", "🎙️ Grabacio
 # 1. MIS CARPETAS & CLASES (CUADERNOS)
 # ==========================================
 with pestañas_principales[0]:
-    # Estadísticas dinámicas del módulo
     carpetas_modulo = db["modulos"][modulo_actual]["carpetas"]
     total_carpetas = len(carpetas_modulo)
     total_clases = sum(len(c.get("clases", [])) for c in carpetas_modulo.values())
@@ -297,7 +386,6 @@ with pestañas_principales[0]:
     </div>
     """, unsafe_allow_html=True)
 
-    # Crear nueva carpeta / materia
     with st.expander("➕ Crear Nueva Carpeta de Materia en " + modulo_actual, expanded=(total_carpetas == 0)):
         col_c1, col_c2 = st.columns([2, 1])
         with col_c1:
@@ -321,7 +409,6 @@ with pestañas_principales[0]:
 
     st.markdown("---")
 
-    # Si hay carpetas, mostramos cada una como una ventana/pestaña dedicada
     if not carpetas_modulo:
         st.info(f"Aún no has creado carpetas en el módulo '{modulo_actual}'. Crea la primera materia arriba.")
     else:
@@ -336,44 +423,36 @@ with pestañas_principales[0]:
                 st.markdown(f"### 📖 {nombre_mat}")
                 st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
                 
-                # --- ÁREA DE GRABACIÓN EN VIVO Y APUNTES INTELIGENTES ---
                 st.markdown("""
                 <div class='app-card'>
                     <h4 style='margin:0 0 10px 0; color:#5b21b6;'>🎙️ Grabación en Vivo de la Clase & Generación de Apuntes</h4>
-                    <p style='color:#64748b; font-size:0.9rem; margin-bottom:14px;'>Presiona el micrófono para iniciar la grabación directa de la clase. Al finalizar, la IA transcribirá y sintetizará automáticamente los apuntes esenciales.</p>
+                    <p style='color:#64748b; font-size:0.9rem; margin-bottom:14px;'>Sube o graba el audio directo de la clase para que Gemini 3.6 Flash redacte apuntes organizados y esenciales.</p>
                 </div>
                 """, unsafe_allow_html=True)
 
-                col_rec1, col_rec2 = st.columns([1, 3])
+                col_rec1, col_rec2 = st.columns([1, 1])
                 with col_rec1:
-                    st.markdown("**Micrófono en vivo:**")
-                    audio_bytes = audio_recorder(
-                        text="Clic para Grabar",
-                        recording_color="#e11d48",
-                        neutral_color="#6d28d9",
-                        icon_size="2x",
-                        key=f"rec_{modulo_actual}_{nombre_mat}"
-                    )
-                with col_rec2:
                     nom_sesion = st.text_input("Tema / Título de la sesión:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"title_{nombre_mat}")
+                with col_rec2:
+                    archivo_audio = st.file_uploader("Subir o grabar audio de clase (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"up_{modulo_actual}_{nombre_mat}")
 
-                # Procesamiento automático del audio grabado
-                if audio_bytes is not None:
-                    st.audio(audio_bytes, format="audio/wav")
+                if archivo_audio is not None:
+                    st.audio(archivo_audio)
                     if st.button("✨ Procesar Clase y Generar Apuntes", key=f"btn_proc_{nombre_mat}"):
                         client = obtener_cliente_ia()
                         if not client:
                             st.error("⚠️ Clave GEMINI_API_KEY no configurada en los Secrets de Streamlit.")
                         else:
                             titulo_final = nom_sesion.strip() if nom_sesion.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"
+                            audio_bytes = archivo_audio.read()
+                            ext_audio = archivo_audio.name.split(".")[-1].lower()
+                            mime_types = {"wav": "audio/wav", "mp3": "audio/mp3", "m4a": "audio/mp4"}
                             
-                            # 1. Guardar archivo original de audio en el módulo de grabaciones
-                            nombre_archivo_audio = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.wav"
+                            nombre_archivo_audio = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_audio}"
                             ruta_audio_dest = os.path.join(DIR_AUDIO_RAW, nombre_archivo_audio)
                             with open(ruta_audio_dest, "wb") as f_aud:
                                 f_aud.write(audio_bytes)
                             
-                            # Registrar en el historial de audios
                             db["grabaciones"].append({
                                 "titulo": titulo_final,
                                 "materia": nombre_mat,
@@ -382,33 +461,29 @@ with pestañas_principales[0]:
                                 "ruta": ruta_audio_dest
                             })
 
-                            # 2. Enviar audio a Gemini 3.6 Flash para transcripción y síntesis estructurada
-                            with st.spinner("🤖 Gemini 3.6 Flash está escuchando la clase y redactando los apuntes estructurados..."):
+                            with st.spinner("🤖 Gemini 3.6 Flash está analizando la clase y redactando los apuntes estructurados..."):
                                 prompt_apuntes = f"""
-                                Eres una asistente universitaria de excelencia y redactora de apuntes académicos de alto nivel.
-                                Escucha con total precisión este audio de la clase universitaria de '{nombre_mat}'.
+                                Eres una asistente académica de excelencia para la estudiante Francesca Fellay.
+                                Analiza con total precisión este audio de la clase universitaria de '{nombre_mat}'.
                                 Título de la sesión: {titulo_final}.
                                 
-                                Genera unos apuntes completos, ultra organizados y profesionales siguiendo esta estructura:
-                                # 📌 Título y Resumen Ejecutivo de la Clase
-                                ## 🎯 Objetivos y Temas Principales Abordados
-                                ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas, definiciones y explicaciones claras)
+                                Genera apuntes completos, organizados y profesionales con:
+                                # 📌 Resumen Ejecutivo de la Clase
+                                ## 🎯 Objetivos y Temas Principales
+                                ## 📝 Desarrollo Detallado y Conceptos Clave (viñetas, definiciones y explicaciones)
                                 ## 💡 Ejemplos Prácticos y Casos Mencionados
-                                ## ⚠️ Tareas, Acuerdos, Fechas y Puntos Críticos para Estudiar
-                                
-                                Asegúrate de no omitir ningún dato clave, nombre de autor, teoría o metodología mencionada por el docente.
+                                ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
                                 """
                                 try:
                                     response = client.models.generate_content(
                                         model=MODELO_GEMINI,
                                         contents=[
-                                            types.Part.from_bytes(data=audio_bytes, mime_type="audio/wav"),
+                                            types.Part.from_bytes(data=audio_bytes, mime_type=mime_types.get(ext_audio, "audio/wav")),
                                             prompt_apuntes
                                         ]
                                     )
                                     apuntes_generados = response.text
 
-                                    # Guardar la nueva clase en la materia
                                     info_mat["clases"].append({
                                         "id": f"clase_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                                         "titulo": titulo_final,
@@ -424,22 +499,20 @@ with pestañas_principales[0]:
 
                 st.markdown("---")
 
-                # --- LISTA Y VISUALIZADOR DE APUNTES GUARDADOS ---
                 st.markdown("#### 📚 Cuaderno de Apuntes Registrados")
                 clases_guardadas = info_mat.get("clases", [])
                 
                 if not clases_guardadas:
-                    st.info("Aún no hay apuntes en esta materia. Graba una clase arriba para comenzar.")
+                    st.info("Aún no hay apuntes en esta materia. Carga o graba una clase arriba para comenzar.")
                 else:
                     for idx_c, clase in enumerate(reversed(clases_guardadas)):
                         idx_real = len(clases_guardadas) - 1 - idx_c
                         with st.expander(f"📝 {clase['titulo']} — ({clase['fecha']})", expanded=(idx_c == 0)):
-                            # Editor en vivo de apuntes
                             col_ed1, col_ed2 = st.columns([4, 1])
                             with col_ed1:
                                 st.markdown("##### ✏️ Editor de Apuntes en Vivo:")
                                 nuevo_texto = st.text_area(
-                                    "Puedes editar y complementar tus apuntes en tiempo real:",
+                                    "Puedes editar tus apuntes en tiempo real:",
                                     value=clase["contenido"],
                                     height=350,
                                     key=f"edit_area_{clase['id']}"
@@ -452,7 +525,6 @@ with pestañas_principales[0]:
                             
                             with col_ed2:
                                 st.markdown("##### ⚙️ Acciones:")
-                                # Descargar apuntes
                                 st.download_button(
                                     "📥 Descargar Apuntes (.txt)",
                                     data=clase["contenido"],
@@ -467,10 +539,8 @@ with pestañas_principales[0]:
 
                             st.markdown("---")
                             
-                            # --- CHAT CON IA EN TIEMPO REAL SOBRE ESTOS APUNTES ---
                             st.markdown(f"##### 💬 Tutor IA: Preguntas y Dudas sobre '{clase['titulo']}'")
                             
-                            # Mostrar historial del chat
                             historial_chat = clase.get("chat", [])
                             for mensaje in historial_chat:
                                 if mensaje["rol"] == "user":
@@ -478,7 +548,6 @@ with pestañas_principales[0]:
                                 else:
                                     st.markdown(f"**🤖 Gemini:** {mensaje['texto']}")
 
-                            # Formulario de pregunta
                             with st.form(f"form_chat_{clase['id']}"):
                                 pregunta_usuario = st.text_input("Hazle una pregunta a la IA sobre esta clase:", placeholder="Ej. Explícame el concepto principal con otro ejemplo...")
                                 submit_chat = st.form_submit_button("Enviar Pregunta")
@@ -497,7 +566,7 @@ with pestañas_principales[0]:
                                             Pregunta de la estudiante:
                                             {pregunta_usuario}
                                             
-                                            Responde de forma pedagógica, clara y directa en base a los apuntes de la clase.
+                                            Responde de forma pedagógica, clara y directa.
                                             """
                                             try:
                                                 resp_chat = client.models.generate_content(
@@ -515,13 +584,13 @@ with pestañas_principales[0]:
                                                 st.error(f"Error en el chat: {e}")
 
 # ==========================================
-# 2. GRABACIONES ORIGINALES (REPOSITORIO RAW)
+# 2. GRABACIONES ORIGINALES
 # ==========================================
 with pestañas_principales[1]:
     st.markdown("""
     <div class='app-card'>
         <h3 style='margin:0 0 6px 0; color:#5b21b6;'>🎙️ Repositorio Central de Grabaciones Originales</h3>
-        <p style='margin:0; color:#64748b;'>Todas las grabaciones de voz capturadas en vivo se almacenan de forma segura aquí para su reproducción o descarga.</p>
+        <p style='margin:0; color:#64748b;'>Todas las grabaciones de voz se almacenan de forma segura aquí para su reproducción o descarga.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -538,16 +607,16 @@ with pestañas_principales[1]:
                     st.caption(f"Materia: **{g['materia']}** | Módulo: **{g.get('modulo', 'General')}** | Grabado: {g['fecha']}")
                     if os.path.exists(g["ruta"]):
                         with open(g["ruta"], "rb") as f_play:
-                            st.audio(f_play.read(), format="audio/wav")
+                            st.audio(f_play.read())
                     else:
                         st.error("Archivo de audio no encontrado en el almacenamiento local.")
                 with c_g2:
                     if os.path.exists(g["ruta"]):
                         with open(g["ruta"], "rb") as f_dl:
                             st.download_button(
-                                "📥 Descargar WAV",
+                                "📥 Descargar Audio",
                                 data=f_dl.read(),
-                                file_name=f"{g['titulo']}.wav",
+                                file_name=os.path.basename(g["ruta"]),
                                 key=f"dl_raw_{idx_real_g}"
                             )
                     if st.button("🗑️ Eliminar Audio", key=f"del_raw_{idx_real_g}"):
