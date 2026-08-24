@@ -284,13 +284,13 @@ button[data-baseweb="tab"][aria-selected="true"] {
 </style>"""
 st.markdown(css_code, unsafe_allow_html=True)
 
-# --- GESTOR DE PERSISTENCIA ---
+# --- GESTOR DE PERSISTENCIA CON MIGRACIÓN AUTOMÁTICA ---
 def cargar_estado():
     if not os.path.exists(FILE_DB):
         data_inicial = {
             "perfil": {
                 "nombre": "Francesca Fellay",
-                "universidad": "Universidad de Playa Ancha",
+                "universidad": "Pontificia Universidad Católica de Valparaíso",
                 "ubicacion": "Valparaíso, Chile",
                 "avatar": ""
             },
@@ -303,11 +303,24 @@ def cargar_estado():
         }
         guardar_estado(data_inicial)
         return data_inicial
+    
     with open(FILE_DB, "r", encoding="utf-8") as f:
         try:
             data = json.load(f)
         except Exception:
-            data = {"perfil": {"nombre": "Francesca Fellay", "universidad": "Universidad", "ubicacion": "Chile", "avatar": ""}, "modulos": {"6to Semestre TSL": {"carpetas": {}}}, "grabaciones": []}
+            data = {"perfil": {"nombre": "Francesca Fellay", "universidad": "Pontificia Universidad Católica de Valparaíso", "ubicacion": "Valparaíso, Chile", "avatar": ""}, "modulos": {"6to Semestre TSL": {"carpetas": {}}}, "grabaciones": []}
+    
+    # Migración automática del nombre guardado anteriormente en el JSON existente
+    if "modulos" in data:
+        if "6to semestre TSL" in data["modulos"]:
+            contenido_viejo = data["modulos"].pop("6to semestre TSL")
+            if "6to Semestre TSL" not in data["modulos"]:
+                data["modulos"]["6to Semestre TSL"] = contenido_viejo
+            guardar_estado(data)
+    else:
+        data["modulos"] = {"6to Semestre TSL": {"carpetas": {}}}
+        guardar_estado(data)
+        
     return data
 
 def guardar_estado(data):
@@ -331,13 +344,13 @@ else:
     """, unsafe_allow_html=True)
 
 st.sidebar.markdown(f"<h3 style='margin:0; font-size:1.15rem; color:#ffffff;'>{perfil.get('nombre', 'Francesca Fellay')}</h3>", unsafe_allow_html=True)
-st.sidebar.markdown(f"<p style='margin:2px 0; font-size:0.85rem; color:#ede9fe;'>🏛️ {perfil.get('universidad', 'Universidad')}</p>", unsafe_allow_html=True)
-st.sidebar.markdown(f"<p style='margin:2px 0 10px 0; font-size:0.85rem; color:#ede9fe;'>📍 {perfil.get('ubicacion', 'Chile')}</p>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<p style='margin:2px 0; font-size:0.85rem; color:#ede9fe;'>🏛️ {perfil.get('universidad', 'Pontificia Universidad Católica de Valparaíso')}</p>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<p style='margin:2px 0 10px 0; font-size:0.85rem; color:#ede9fe;'>📍 {perfil.get('ubicacion', 'Valparaíso, Chile')}</p>", unsafe_allow_html=True)
 
 with st.sidebar.expander("⚙️ Editar Datos del Perfil"):
     n_nom = st.text_input("Nombre:", value=perfil.get("nombre", "Francesca Fellay"))
-    n_uni = st.text_input("Universidad:", value=perfil.get("universidad", ""))
-    n_ubi = st.text_input("Ubicación:", value=perfil.get("ubicacion", ""))
+    n_uni = st.text_input("Universidad:", value=perfil.get("universidad", "Pontificia Universidad Católica de Valparaíso"))
+    n_ubi = st.text_input("Ubicación:", value=perfil.get("ubicacion", "Valparaíso, Chile"))
     n_img = st.file_uploader("Foto de perfil (JPG/PNG):", type=["jpg", "jpeg", "png"])
     
     if st.button("Guardar Perfil"):
