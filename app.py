@@ -476,7 +476,7 @@ with pestañas_principales[0]:
                 with c_suite_rec:
                     st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>1. Grabar con Micrófono (Controles Dedicados):</p>", unsafe_allow_html=True)
                     
-                    html_recorder_suite = f"""
+                    html_recorder_suite = """
                     <div style="background-color: #ede9fe; border: 1.5px dashed #8b5cf6; border-radius: 14px; padding: 14px 16px; font-family: 'Segoe UI', sans-serif;">
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
                             <button id="rec_start" onclick="iniciarGrabacion()" style="background: linear-gradient(135deg, #6214c7, #7c24ec); color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 750; font-size: 0.88rem; cursor: pointer; box-shadow: 0 3px 8px rgba(98, 20, 199, 0.25);">
@@ -505,24 +505,24 @@ with pestañas_principales[0]:
                     let timerInterval = null;
                     let secondsElapsed = 0;
 
-                    function formatearTiempo(sec) {{
+                    function formatearTiempo(sec) {
                         const m = Math.floor(sec / 60).toString().padStart(2, '0');
                         const s = (sec % 60).toString().padStart(2, '0');
-                        return `${m}:${s}`;
-                    }}
+                        return m + ':' + s;
+                    }
 
-                    async function iniciarGrabacion() {{
-                        try {{
-                            const stream = await navigator.mediaDevices.getUserMedia({{ audio: true }});
+                    async function iniciarGrabacion() {
+                        try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                             mediaRecorder = new MediaRecorder(stream);
                             audioChunks = [];
 
-                            mediaRecorder.ondataavailable = event => {{
+                            mediaRecorder.ondataavailable = event => {
                                 if (event.data.size > 0) audioChunks.push(event.data);
-                            }};
+                            };
 
-                            mediaRecorder.onstop = () => {{
-                                const audioBlob = new Blob(audioChunks, {{ type: 'audio/webm' }});
+                            mediaRecorder.onstop = () => {
+                                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                                 const audioUrl = URL.createObjectURL(audioBlob);
                                 const preview = document.getElementById('audio_preview');
                                 const dl = document.getElementById('download_link');
@@ -533,7 +533,7 @@ with pestañas_principales[0]:
                                 dl.style.display = 'inline-block';
                                 dl.innerText = '📥 Descargar Audio Grabado (' + formatearTiempo(secondsElapsed) + ')';
                                 document.getElementById('rec_status').innerHTML = '✅ Audio listo para subir y procesar.';
-                            }};
+                            };
 
                             mediaRecorder.start(1000);
                             document.getElementById('rec_start').disabled = true;
@@ -543,37 +543,37 @@ with pestañas_principales[0]:
 
                             secondsElapsed = 0;
                             clearInterval(timerInterval);
-                            timerInterval = setInterval(() => {{
+                            timerInterval = setInterval(() => {
                                 secondsElapsed++;
                                 document.getElementById('rec_timer').innerText = formatearTiempo(secondsElapsed);
-                            }}, 1000);
+                            }, 1000);
 
-                        }} catch (err) {{
+                        }} catch (err) {
                             document.getElementById('rec_status').innerHTML = '⚠️ Error de micrófono: ' + err.message;
-                        }}
-                    }}
+                        }
+                    }
 
-                    function pausarGrabacion() {{
-                        if (mediaRecorder) {{
-                            if (mediaRecorder.state === 'recording') {{
+                    function pausarGrabacion() {
+                        if (mediaRecorder) {
+                            if (mediaRecorder.state === 'recording') {
                                 mediaRecorder.pause();
                                 clearInterval(timerInterval);
                                 document.getElementById('rec_pause').innerText = '▶️ Reanudar';
                                 document.getElementById('rec_status').innerHTML = '⏸️ Grabación en pausa';
-                            }} else if (mediaRecorder.state === 'paused') {{
+                            } else if (mediaRecorder.state === 'paused') {
                                 mediaRecorder.resume();
-                                timerInterval = setInterval(() => {{
+                                timerInterval = setInterval(() => {
                                     secondsElapsed++;
                                     document.getElementById('rec_timer').innerText = formatearTiempo(secondsElapsed);
-                                }}, 1000);
+                                }, 1000);
                                 document.getElementById('rec_pause').innerText = '⏸️ Pausar';
                                 document.getElementById('rec_status').innerHTML = '🔴 <span style="color:#b91c1c;">Grabando...</span>';
-                            }}
-                        }}
-                    }}
+                            }
+                        }
+                    }
 
-                    function detenerGrabacion() {{
-                        if (mediaRecorder && mediaRecorder.state !== 'inactive') {{
+                    function detenerGrabacion() {
+                        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                             mediaRecorder.stop();
                             mediaRecorder.stream.getTracks().forEach(t => t.stop());
                             clearInterval(timerInterval);
@@ -581,8 +581,8 @@ with pestañas_principales[0]:
                             document.getElementById('rec_pause').disabled = true;
                             document.getElementById('rec_pause').innerText = '⏸️ Pausar';
                             document.getElementById('rec_stop').disabled = true;
-                        }}
-                    }}
+                        }
+                    }
                     </script>
                     """
                     components.html(html_recorder_suite, height=160)
@@ -639,7 +639,7 @@ with pestañas_principales[0]:
                                     n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_chunk}"
                                     r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)
                                     with open(r_dest, "wb") as f_raw:
-                                    	f_raw.write(audio_chunk_to_process)
+                                        f_raw.write(audio_chunk_to_process)
                                     
                                     db["grabaciones"].append({
                                         "titulo": nom_sesion_live if nom_sesion_live.strip() else f"Grabación {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}",
