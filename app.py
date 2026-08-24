@@ -9,9 +9,6 @@ import streamlit.components.v1 as components
 from PIL import Image
 from google import genai
 from google.genai import types
-import pypdf
-from docx import Document
-from pptx import Presentation
 
 # --- CONFIGURACION DE PAGINA ---
 st.set_page_config(
@@ -124,7 +121,7 @@ section[data-testid="stSidebar"] input[type="text"]:focus {
     box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3) !important;
 }
 
-/* Selector desplegable en Sidebar (Selectbox) */
+/* Selector desplegable en Sidebar (Selectbox) - Quitar negro */
 section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
     background-color: #ede9fe !important;
     border: 1.5px solid #c4b5fd !important;
@@ -140,7 +137,7 @@ section[data-testid="stSidebar"] div[data-baseweb="select"] svg {
     color: #2e1065 !important;
 }
 
-/* Botones en Sidebar */
+/* Botones en Sidebar (Tono Lavanda Luminoso con texto Violeta Profundo) */
 section[data-testid="stSidebar"] .stButton>button {
     background: #ede9fe !important;
     color: #4c1d95 !important;
