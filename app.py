@@ -1,11 +1,12 @@
 import os
 import io
 import json
+import base64
 from datetime import datetime
 import pytz
 import pandas as pd
 import streamlit as st
-from audio_recorder_streamlit import audio_recorder
+import streamlit.components.v1 as components
 from PIL import Image
 from google import genai
 from google.genai import types
@@ -42,7 +43,7 @@ def obtener_cliente_ia():
         return None
     return genai.Client(api_key=API_KEY_GEMINI)
 
-# --- ESTILOS CSS ---
+# --- ESTILOS CSS SKILLPATH ---
 st.markdown("""
 <style>
 html, body, [class*="css"], .stApp { 
@@ -72,7 +73,7 @@ html, body, [class*="css"], .stApp {
     color: #ffffff !important;
 }
 
-/* BARRA LATERAL SKILLPATH */
+/* BARRA LATERAL */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #6214c7 0%, #520eb0 100%) !important;
     border-right: 1.5px solid #450c96 !important;
@@ -100,9 +101,6 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
 }
 section[data-testid="stSidebar"] div[data-testid="stExpander"] summary * {
     color: #ffffff !important;
-}
-section[data-testid="stSidebar"] div[data-testid="stExpander"] div[role="region"] {
-    background-color: transparent !important;
 }
 
 /* DESPLEGABLES DEL ÁREA CENTRAL */
@@ -134,7 +132,7 @@ div[data-testid="stExpander"] div[role="region"] {
     padding: 18px !important;
 }
 
-/* Cuadros de entrada en Sidebar */
+/* Inputs en Sidebar */
 section[data-testid="stSidebar"] input[type="text"], 
 section[data-testid="stSidebar"] input[type="password"] {
     background-color: #ede9fe !important;
@@ -142,11 +140,6 @@ section[data-testid="stSidebar"] input[type="password"] {
     border: 1.5px solid #c4b5fd !important;
     border-radius: 8px !important;
     font-weight: 600 !important;
-}
-section[data-testid="stSidebar"] input[type="text"]:focus {
-    background-color: #ffffff !important;
-    border-color: #fbbf24 !important;
-    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3) !important;
 }
 
 /* Selector en Sidebar */
@@ -159,10 +152,6 @@ section[data-testid="stSidebar"] div[data-baseweb="select"] * {
     background-color: transparent !important;
     color: #2e1065 !important;
     font-weight: 750 !important;
-}
-section[data-testid="stSidebar"] div[data-baseweb="select"] svg {
-    fill: #2e1065 !important;
-    color: #2e1065 !important;
 }
 
 /* Botones en Sidebar */
@@ -185,7 +174,7 @@ section[data-testid="stSidebar"] .stButton>button p {
     font-weight: 800 !important;
 }
 
-/* Banner Dashboard y Tarjetas */
+/* Dashboard Banner y Cards */
 .welcome-card {
     background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
     color: white;
@@ -244,14 +233,6 @@ div[data-testid="stDownloadButton"]>button {
     padding: 8px 18px !important;
     font-weight: 750 !important;
 }
-div[data-testid="stDownloadButton"]>button:hover {
-    background: #ddd6fe !important;
-    color: #2e1065 !important;
-}
-div[data-testid="stDownloadButton"]>button p {
-    color: #4c1d95 !important;
-    font-weight: 750 !important;
-}
 
 input[type="text"], textarea {
     background-color: #f8fafc !important;
@@ -260,35 +241,25 @@ input[type="text"], textarea {
     border-radius: 8px !important;
     font-weight: 500 !important;
 }
-input[type="text"]:focus, textarea:focus {
-    border-color: #7c3aed !important;
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2) !important;
-}
 
-button[data-baseweb="tab"] {
-    background-color: transparent !important;
-    color: #64748b !important;
-    font-weight: 750 !important;
-    padding: 10px 20px !important;
-    border-radius: 8px 8px 0 0 !important;
-}
-button[data-baseweb="tab"][aria-selected="true"] {
-    color: #6214c7 !important;
-    border-bottom: 3.5px solid #6214c7 !important;
-}
-
-/* CONTENEDOR LAVANDA LIMPIO PARA CARGADOR DE ARCHIVOS */
+/* CARGADOR DE ARCHIVOS */
 div[data-testid="stFileUploader"],
 div[data-testid="stFileUploader"] section {
     background-color: #ede9fe !important;
     border: 1.5px dashed #8b5cf6 !important;
     border-radius: 12px !important;
 }
-
 div[data-testid="stFileUploader"] section * {
     color: #3b0764 !important;
 }
-
+div[data-testid="stFileUploader"] label,
+div[data-testid="stFileUploader"] label p,
+div[data-testid="stFileUploader"] label span,
+div[data-testid="stFileUploader"] small,
+div[data-testid="stFileUploader"] div {
+    color: #3b0764 !important;
+    font-weight: 750 !important;
+}
 div[data-testid="stFileUploader"] button {
     background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%) !important;
     border: none !important;
@@ -298,32 +269,6 @@ div[data-testid="stFileUploader"] button {
 div[data-testid="stFileUploader"] button p {
     color: #ffffff !important;
     font-weight: 700 !important;
-}
-
-div[data-testid="stFileUploader"] label,
-div[data-testid="stFileUploader"] label p,
-div[data-testid="stFileUploader"] label span,
-div[data-testid="stFileUploader"] small,
-div[data-testid="stFileUploader"] div {
-    color: #3b0764 !important;
-    font-weight: 750 !important;
-}
-
-/* ENVOLTORIO LAVANDA PERSONALIZADO PARA EL MICRÓFONO */
-.mic-clean-box {
-    background-color: #ede9fe;
-    border: 1.5px dashed #8b5cf6;
-    border-radius: 12px;
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-}
-
-iframe[title*="audio_recorder"] {
-    border: none !important;
-    background: transparent !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -354,7 +299,6 @@ def cargar_estado():
         except Exception:
             data = {"perfil": {"nombre": "Francesca Fellay", "universidad": "Pontificia Universidad Católica de Valparaíso", "ubicacion": "Valparaíso, Chile", "avatar": ""}, "modulos": {"6to Semestre TSL": {"carpetas": {}}}, "grabaciones": []}
     
-    # Migración automática del nombre guardado anteriormente en el JSON existente
     if "modulos" in data:
         if "6to semestre TSL" in data["modulos"]:
             contenido_viejo = data["modulos"].pop("6to semestre TSL")
@@ -373,7 +317,7 @@ def guardar_estado(data):
 
 db = cargar_estado()
 
-# --- BARRA LATERAL: PERFIL DE USUARIO ---
+# --- BARRA LATERAL ---
 st.sidebar.markdown("### 🎓 Mi Perfil Académico")
 perfil = db.get("perfil", {})
 avatar_path = perfil.get("avatar", "")
@@ -431,7 +375,7 @@ with st.sidebar.expander("➕ Crear Nuevo Módulo"):
             st.success("Módulo creado con éxito.")
             st.rerun()
 
-# --- HEADER BRAND SKILLPATH ---
+# --- HEADER BRAND ---
 tz_cl = pytz.timezone("America/Santiago")
 hora_actual = datetime.now(tz_cl).strftime("%d/%m/%Y | %H:%M:%S")
 
@@ -445,7 +389,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- PESTAÑAS PRINCIPALES ---
 pestañas_principales = st.tabs(["📁 Mis Carpetas & Clases", "🎙️ Grabaciones Originales"])
 
 # ==========================================
@@ -459,7 +402,7 @@ with pestañas_principales[0]:
     st.markdown(f"""
     <div class='welcome-card'>
         <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
-        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Transcripción y apuntes automáticos con Gemini 3.6 Flash.</p>
+        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Transcripción y apuntes continuos con Gemini 3.6 Flash.</p>
     </div>
     <div class='stats-grid'>
         <div class='stat-card-1'><div class='stat-value'>{total_carpetas}</div><div class='stat-label'>Materias / Carpetas</div></div>
@@ -506,12 +449,11 @@ with pestañas_principales[0]:
                 st.markdown(f"### 📖 {nombre_mat}")
                 st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
                 
-                # --- ÁREA DE GRABACIÓN Y APUNTES EN VIVO CONTINUOS ---
                 st.markdown("""
                 <div class='app-card'>
-                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo & Apuntes Continuos con Autocorrección</h4>
+                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Consola de Grabación en Vivo con Botones Independientes</h4>
                     <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
-                        Pulsa el micrófono para hablar. Cada segmento capturado se integrará al borrador estructurado en tiempo real con <b>Gemini 3.6 Flash</b>, corrigiendo términos sin perder el hilo.
+                        Controla la grabación con los botones dedicados. Cada segmento o archivo de audio se procesará con <b>Gemini 3.6 Flash</b> para redactar, organizar y autocorregir tus apuntes en tiempo real.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -529,87 +471,188 @@ with pestañas_principales[0]:
                         st.session_state[session_key_borrador] = ""
                         st.rerun()
 
-                c_audio_rec, c_audio_up = st.columns([1, 1.4])
-                with c_audio_rec:
-                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>1. Capturar Voz en Vivo (Micrófono):</p>", unsafe_allow_html=True)
+                # --- SUITE DE GRABACIÓN NATIVA: BOTONES INICIAR, PAUSAR Y DETENER ---
+                c_suite_rec, c_suite_up = st.columns([1.2, 1.2])
+                with c_suite_rec:
+                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>1. Grabar con Micrófono (Controles Dedicados):</p>", unsafe_allow_html=True)
                     
-                    st.markdown("<div class='mic-clean-box'>", unsafe_allow_html=True)
-                    live_audio_chunk = audio_recorder(
-                        text="",
-                        recording_color="#e11d48",
-                        neutral_color="#6214c7",
-                        icon_size="2x",
-                        key=f"rec_stream_{modulo_actual}_{nombre_mat}"
-                    )
-                    st.markdown("<span style='color:#3b0764; font-weight:750; font-size:0.95rem;'>Presiona el micrófono para Grabar / Pausar</span></div>", unsafe_allow_html=True)
+                    html_recorder_suite = f"""
+                    <div style="background-color: #ede9fe; border: 1.5px dashed #8b5cf6; border-radius: 14px; padding: 14px 16px; font-family: 'Segoe UI', sans-serif;">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                            <button id="rec_start" onclick="iniciarGrabacion()" style="background: linear-gradient(135deg, #6214c7, #7c24ec); color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 750; font-size: 0.88rem; cursor: pointer; box-shadow: 0 3px 8px rgba(98, 20, 199, 0.25);">
+                                🔴 Iniciar
+                            </button>
+                            <button id="rec_pause" onclick="pausarGrabacion()" style="background: #ffffff; color: #4c1d95; border: 1.5px solid #c4b5fd; padding: 8px 14px; border-radius: 8px; font-weight: 750; font-size: 0.88rem; cursor: pointer;" disabled>
+                                ⏸️ Pausar
+                            </button>
+                            <button id="rec_stop" onclick="detenerGrabacion()" style="background: #ffffff; color: #b91c1c; border: 1.5px solid #fca5a5; padding: 8px 14px; border-radius: 8px; font-weight: 750; font-size: 0.88rem; cursor: pointer;" disabled>
+                                ⏹️ Detener
+                            </button>
+                            <span id="rec_timer" style="margin-left: auto; font-weight: 800; color: #3b0764; display: flex; align-items: center; font-size: 0.95rem;">
+                                00:00
+                            </span>
+                        </div>
+                        <div id="rec_status" style="font-size: 0.83rem; font-weight: 700; color: #6d28d9;">
+                            ⚪ Listo para iniciar grabación
+                        </div>
+                        <audio id="audio_preview" controls style="width: 100%; height: 32px; margin-top: 8px; display: none;"></audio>
+                        <a id="download_link" style="display: none; font-size: 0.85rem; color: #6214c7; font-weight: 800; text-decoration: underline; margin-top: 6px;">📥 Descargar Audio Grabado (.webm)</a>
+                    </div>
 
-                with c_audio_up:
-                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>2. O Cargar Audio de la Clase:</p>", unsafe_allow_html=True)
-                    uploaded_chunk = st.file_uploader("Subir archivo (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"up_stream_{modulo_actual}_{nombre_mat}")
+                    <script>
+                    let mediaRecorder = null;
+                    let audioChunks = [];
+                    let timerInterval = null;
+                    let secondsElapsed = 0;
+
+                    function formatearTiempo(sec) {{
+                        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+                        const s = (sec % 60).toString().padStart(2, '0');
+                        return `${m}:${s}`;
+                    }}
+
+                    async function iniciarGrabacion() {{
+                        try {{
+                            const stream = await navigator.mediaDevices.getUserMedia({{ audio: true }});
+                            mediaRecorder = new MediaRecorder(stream);
+                            audioChunks = [];
+
+                            mediaRecorder.ondataavailable = event => {{
+                                if (event.data.size > 0) audioChunks.push(event.data);
+                            }};
+
+                            mediaRecorder.onstop = () => {{
+                                const audioBlob = new Blob(audioChunks, {{ type: 'audio/webm' }});
+                                const audioUrl = URL.createObjectURL(audioBlob);
+                                const preview = document.getElementById('audio_preview');
+                                const dl = document.getElementById('download_link');
+                                preview.src = audioUrl;
+                                preview.style.display = 'block';
+                                dl.href = audioUrl;
+                                dl.download = 'Grabacion_Clase.webm';
+                                dl.style.display = 'inline-block';
+                                dl.innerText = '📥 Descargar Audio Grabado (' + formatearTiempo(secondsElapsed) + ')';
+                                document.getElementById('rec_status').innerHTML = '✅ Audio listo para subir y procesar.';
+                            }};
+
+                            mediaRecorder.start(1000);
+                            document.getElementById('rec_start').disabled = true;
+                            document.getElementById('rec_pause').disabled = false;
+                            document.getElementById('rec_stop').disabled = false;
+                            document.getElementById('rec_status').innerHTML = '🔴 <span style="color:#b91c1c;">Grabando clase en vivo...</span>';
+
+                            secondsElapsed = 0;
+                            clearInterval(timerInterval);
+                            timerInterval = setInterval(() => {{
+                                secondsElapsed++;
+                                document.getElementById('rec_timer').innerText = formatearTiempo(secondsElapsed);
+                            }}, 1000);
+
+                        }} catch (err) {{
+                            document.getElementById('rec_status').innerHTML = '⚠️ Error de micrófono: ' + err.message;
+                        }}
+                    }}
+
+                    function pausarGrabacion() {{
+                        if (mediaRecorder) {{
+                            if (mediaRecorder.state === 'recording') {{
+                                mediaRecorder.pause();
+                                clearInterval(timerInterval);
+                                document.getElementById('rec_pause').innerText = '▶️ Reanudar';
+                                document.getElementById('rec_status').innerHTML = '⏸️ Grabación en pausa';
+                            }} else if (mediaRecorder.state === 'paused') {{
+                                mediaRecorder.resume();
+                                timerInterval = setInterval(() => {{
+                                    secondsElapsed++;
+                                    document.getElementById('rec_timer').innerText = formatearTiempo(secondsElapsed);
+                                }}, 1000);
+                                document.getElementById('rec_pause').innerText = '⏸️ Pausar';
+                                document.getElementById('rec_status').innerHTML = '🔴 <span style="color:#b91c1c;">Grabando...</span>';
+                            }}
+                        }}
+                    }}
+
+                    function detenerGrabacion() {{
+                        if (mediaRecorder && mediaRecorder.state !== 'inactive') {{
+                            mediaRecorder.stop();
+                            mediaRecorder.stream.getTracks().forEach(t => t.stop());
+                            clearInterval(timerInterval);
+                            document.getElementById('rec_start').disabled = false;
+                            document.getElementById('rec_pause').disabled = true;
+                            document.getElementById('rec_pause').innerText = '⏸️ Pausar';
+                            document.getElementById('rec_stop').disabled = true;
+                        }}
+                    }}
+                    </script>
+                    """
+                    components.html(html_recorder_suite, height=160)
+
+                with c_suite_up:
+                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>2. Subir Audio para Procesar con Gemini:</p>", unsafe_allow_html=True)
+                    uploaded_chunk = st.file_uploader("Formatos (.wav, .mp3, .m4a, .webm):", type=["wav", "mp3", "m4a", "webm"], key=f"up_stream_{modulo_actual}_{nombre_mat}")
 
                 audio_chunk_to_process = None
                 mime_chunk = "audio/wav"
                 ext_chunk = "wav"
 
-                if live_audio_chunk is not None:
-                    audio_chunk_to_process = live_audio_chunk
-                    mime_chunk = "audio/wav"
-                    ext_chunk = "wav"
-                elif uploaded_chunk is not None:
+                if uploaded_chunk is not None:
                     audio_chunk_to_process = uploaded_chunk.read()
                     ext_chunk = uploaded_chunk.name.split(".")[-1].lower()
-                    mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "m4a": "audio/mp4"}
+                    mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "m4a": "audio/mp4", "webm": "audio/webm"}
                     mime_chunk = mime_map.get(ext_chunk, "audio/wav")
 
                 # Procesamiento incremental en caliente con Gemini
                 if audio_chunk_to_process is not None:
-                    client = obtener_cliente_ia()
-                    if client:
-                        with st.spinner("🤖 Gemini 3.6 Flash está procesando el audio en vivo, corrigiendo y actualizando tus apuntes..."):
-                            prompt_incremental = f"""
-                            Actúa como una asistente académica de excelencia para la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
-                            
-                            BORRADOR ACTUAL DE LOS APUNTES:
-                            \"\"\"
-                            {st.session_state[session_key_borrador] if st.session_state[session_key_borrador] else 'Aún no hay apuntes previos. Inicia la estructura.'}
-                            \"\"\"
-                            
-                            INSTRUCCIONES DE ACTUALIZACIÓN EN VIVO:
-                            1. Escucha con precisión el nuevo fragmento de audio de la clase.
-                            2. Integra los nuevos conceptos, autores, metodologías o explicaciones al borrador existente.
-                            3. Si en el audio anterior hubo errores de dicción, nombres mal escritos o frases incompletas, CORRÍGELOS inmediatamente integrando el nuevo contexto sin perder el hilo.
-                            4. Mantén y enriquece siempre la estructura profesional con:
-                               # 📌 Resumen Ejecutivo de la Clase
-                               ## 🎯 Objetivos y Temas Principales
-                               ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas y definiciones claras)
-                               ## 💡 Ejemplos Prácticos y Casos Mencionados
-                               ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
-                            """
-                            try:
-                                resp_stream = client.models.generate_content(
-                                    model=MODELO_GEMINI,
-                                    contents=[
-                                        types.Part.from_bytes(data=audio_chunk_to_process, mime_type=mime_chunk),
-                                        prompt_incremental
-                                    ]
-                                )
-                                st.session_state[session_key_borrador] = resp_stream.text
-
-                                n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_chunk}"
-                                r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)
-                                with open(r_dest, "wb") as f_raw:
-                                    f_raw.write(audio_chunk_to_process)
+                    if st.button("✨ Procesar Audio y Actualizar Apuntes", key=f"btn_proc_stream_{nombre_mat}"):
+                        client = obtener_cliente_ia()
+                        if client:
+                            with st.spinner("🤖 Gemini 3.6 Flash está procesando el audio en vivo, corrigiendo y actualizando tus apuntes..."):
+                                prompt_incremental = f"""
+                                Actúa como una asistente académica de excelencia para la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
                                 
-                                db["grabaciones"].append({
-                                    "titulo": nom_sesion_live if nom_sesion_live.strip() else f"Grabación {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}",
-                                    "materia": nombre_mat,
-                                    "modulo": modulo_actual,
-                                    "fecha": datetime.now(tz_cl).strftime("%Y-%m-%d %H:%M"),
-                                    "ruta": r_dest
-                                })
-                                guardar_estado(db)
-                            except Exception as err:
-                                st.error(f"Error procesando el segmento de audio: {err}")
+                                BORRADOR ACTUAL DE LOS APUNTES:
+                                \"\"\"
+                                {st.session_state[session_key_borrador] if st.session_state[session_key_borrador] else 'Aún no hay apuntes previos. Inicia la estructura.'}
+                                \"\"\"
+                                
+                                INSTRUCCIONES DE ACTUALIZACIÓN EN VIVO:
+                                1. Escucha con precisión el nuevo fragmento de audio de la clase.
+                                2. Integra los nuevos conceptos, autores, metodologías o explicaciones al borrador existente.
+                                3. Si en el audio anterior hubo errores de dicción, nombres mal escritos o frases incompletas, CORRÍGELOS inmediatamente integrando el nuevo contexto sin perder el hilo.
+                                4. Mantén y enriquece siempre la estructura profesional con:
+                                   # 📌 Resumen Ejecutivo de la Clase
+                                   ## 🎯 Objetivos y Temas Principales
+                                   ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas y definiciones claras)
+                                   ## 💡 Ejemplos Prácticos y Casos Mencionados
+                                   ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
+                                """
+                                try:
+                                    resp_stream = client.models.generate_content(
+                                        model=MODELO_GEMINI,
+                                        contents=[
+                                            types.Part.from_bytes(data=audio_chunk_to_process, mime_type=mime_chunk),
+                                            prompt_incremental
+                                        ]
+                                    )
+                                    st.session_state[session_key_borrador] = resp_stream.text
+
+                                    n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_chunk}"
+                                    r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)
+                                    with open(r_dest, "wb") as f_raw:
+                                    	f_raw.write(audio_chunk_to_process)
+                                    
+                                    db["grabaciones"].append({
+                                        "titulo": nom_sesion_live if nom_sesion_live.strip() else f"Grabación {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}",
+                                        "materia": nombre_mat,
+                                        "modulo": modulo_actual,
+                                        "fecha": datetime.now(tz_cl).strftime("%Y-%m-%d %H:%M"),
+                                        "ruta": r_dest
+                                    })
+                                    guardar_estado(db)
+                                    st.success("¡Apuntes actualizados y corregidos con éxito!")
+                                    st.rerun()
+                                except Exception as err:
+                                    st.error(f"Error procesando el segmento de audio: {err}")
 
                 # --- VISOR Y EDITOR DE APUNTES EN VIVO ---
                 st.markdown("##### 📝 Cuaderno en Tiempo Real (Actualización Continua & Edición):")
@@ -625,7 +668,7 @@ with pestañas_principales[0]:
                 with col_save_live1:
                     if st.button("💾 Finalizar y Guardar Clase en el Cuaderno Permanente", key=f"btn_save_permanent_{nombre_mat}"):
                         if not st.session_state[session_key_borrador].strip():
-                            st.warning("El borrador está vacío. Graba un segmento de clase primero.")
+                            st.warning("El borrador está vacío. Procesa un segmento de clase primero.")
                         else:
                             titulo_final = nom_sesion_live.strip() if nom_sesion_live.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"
                             info_mat["clases"].append({
