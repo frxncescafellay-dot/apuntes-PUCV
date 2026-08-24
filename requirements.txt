@@ -1,5 +1,5 @@
 streamlit>=1.35.0
-openai
+groq
 audio-recorder-streamlit>=0.0.8
 pytz
 Pillow
