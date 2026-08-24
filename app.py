@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
+from audio_recorder_streamlit import audio_recorder
 from PIL import Image
 from google import genai
 from google.genai import types
@@ -43,7 +43,8 @@ def obtener_cliente_ia():
     return genai.Client(api_key=API_KEY_GEMINI)
 
 # --- ESTILOS CSS ---
-css_code = """<style>
+st.markdown("""
+<style>
 html, body, [class*="css"], .stApp { 
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important; 
     background-color: #f4f5fa !important;
@@ -72,7 +73,7 @@ html, body, [class*="css"], .stApp {
     color: #ffffff !important;
 }
 
-/* BARRA LATERAL CON EL MORADO EXACTO DE SKILLPATH (#6214c7) */
+/* BARRA LATERAL SKILLPATH */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #6214c7 0%, #520eb0 100%) !important;
     border-right: 1.5px solid #450c96 !important;
@@ -88,7 +89,7 @@ section[data-testid="stSidebar"] h4 {
     font-weight: 800 !important;
 }
 
-/* Desplegables / Expanders dentro del Sidebar */
+/* Desplegables en Sidebar */
 section[data-testid="stSidebar"] div[data-testid="stExpander"] {
     background-color: rgba(255, 255, 255, 0.12) !important;
     border: 1px solid rgba(255, 255, 255, 0.25) !important;
@@ -106,7 +107,7 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] div[role="region"
     background-color: transparent !important;
 }
 
-/* DESPLEGABLES / EXPANDERS DEL ÁREA CENTRAL (MORADO VIBRANTE #7c24ec / #6d28d9) */
+/* DESPLEGABLES DEL ÁREA CENTRAL */
 div[data-testid="stExpander"] {
     background-color: #ffffff !important;
     border: 1.5px solid #c4b5fd !important;
@@ -135,7 +136,7 @@ div[data-testid="stExpander"] div[role="region"] {
     padding: 18px !important;
 }
 
-/* Cuadros de entrada en Sidebar */
+/* Inputs en Sidebar */
 section[data-testid="stSidebar"] input[type="text"], 
 section[data-testid="stSidebar"] input[type="password"] {
     background-color: #ede9fe !important;
@@ -150,7 +151,7 @@ section[data-testid="stSidebar"] input[type="text"]:focus {
     box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3) !important;
 }
 
-/* Selector desplegable en Sidebar (Selectbox) */
+/* Selector en Sidebar */
 section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
     background-color: #ede9fe !important;
     border: 1.5px solid #c4b5fd !important;
@@ -217,7 +218,7 @@ section[data-testid="stSidebar"] .stButton>button p {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
-/* Botones Principales del Área Central */
+/* Botones Principales */
 .stButton>button {
     background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%) !important;
     color: #ffffff !important;
@@ -238,7 +239,6 @@ section[data-testid="stSidebar"] .stButton>button p {
     font-weight: 750 !important;
 }
 
-/* Botones de Descarga en el contenido */
 div[data-testid="stDownloadButton"]>button {
     background: #ede9fe !important;
     color: #4c1d95 !important;
@@ -256,7 +256,6 @@ div[data-testid="stDownloadButton"]>button p {
     font-weight: 750 !important;
 }
 
-/* Inputs y Textareas del Área Central */
 input[type="text"], textarea {
     background-color: #f8fafc !important;
     color: #1e1b4b !important;
@@ -269,7 +268,6 @@ input[type="text"]:focus, textarea:focus {
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2) !important;
 }
 
-/* Pestañas */
 button[data-baseweb="tab"] {
     background-color: transparent !important;
     color: #64748b !important;
@@ -281,10 +279,10 @@ button[data-baseweb="tab"][aria-selected="true"] {
     color: #6214c7 !important;
     border-bottom: 3.5px solid #6214c7 !important;
 }
-</style>"""
-st.markdown(css_code, unsafe_allow_html=True)
+</style>
+""", unsafe_allow_html=True)
 
-# --- GESTOR DE PERSISTENCIA CON MIGRACIÓN AUTOMÁTICA ---
+# --- GESTOR DE PERSISTENCIA ---
 def cargar_estado():
     if not os.path.exists(FILE_DB):
         data_inicial = {
@@ -310,7 +308,6 @@ def cargar_estado():
         except Exception:
             data = {"perfil": {"nombre": "Francesca Fellay", "universidad": "Pontificia Universidad Católica de Valparaíso", "ubicacion": "Valparaíso, Chile", "avatar": ""}, "modulos": {"6to Semestre TSL": {"carpetas": {}}}, "grabaciones": []}
     
-    # Migración automática de nombres anteriores al 6to Semestre TSL
     if "modulos" in data:
         if "6to semestre TSL" in data["modulos"]:
             contenido_viejo = data["modulos"].pop("6to semestre TSL")
@@ -415,7 +412,7 @@ with pestañas_principales[0]:
     st.markdown(f"""
     <div class='welcome-card'>
         <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
-        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Transcripción y apuntes en vivo con Gemini 3.6 Flash.</p>
+        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Transcripción y apuntes automáticos con Gemini 3.6 Flash.</p>
     </div>
     <div class='stats-grid'>
         <div class='stat-card-1'><div class='stat-value'>{total_carpetas}</div><div class='stat-label'>Materias / Carpetas</div></div>
@@ -462,131 +459,88 @@ with pestañas_principales[0]:
                 st.markdown(f"### 📖 {nombre_mat}")
                 st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
                 
-                # --- GRABADOR DE VOZ Y APUNTES EN VIVO NATIVO EN EL NAVEGADOR ---
                 st.markdown("""
                 <div class='app-card'>
-                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Transcripción en Vivo de Clase (Reconocimiento de Voz Directo)</h4>
-                    <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>Presiona 'Iniciar Escucha en Vivo' para que el micrófono empiece a escribir en tiempo real cada palabra del profesor sin interrupción.</p>
+                    <h4 style='margin:0 0 10px 0; color:#5b21b6;'>🎙️ Grabación de Clase & Apuntes Automáticos con IA</h4>
+                    <p style='color:#64748b; font-size:0.9rem; margin-bottom:14px;'>Haz clic en el micrófono para grabar la clase. Al terminar, Gemini 3.6 Flash generará tus apuntes estructurados y corregidos al instante.</p>
                 </div>
                 """, unsafe_allow_html=True)
 
-                # Componente HTML / JS de reconocimiento de voz continuo en tiempo real
-                html_live_transcription = f"""
-                <div style="background:#ffffff; border:1.5px solid #c4b5fd; border-radius:12px; padding:16px; font-family:'Segoe UI', sans-serif;">
-                    <div style="display:flex; gap:10px; margin-bottom:12px;">
-                        <button id="btn_start_rec" onclick="iniciarEscucha()" style="background:#6214c7; color:#ffffff; border:none; padding:8px 18px; border-radius:8px; font-weight:700; cursor:pointer;">
-                            🔴 Iniciar Escucha en Vivo
-                        </button>
-                        <button id="btn_stop_rec" onclick="detenerEscucha()" style="background:#ede9fe; color:#4c1d95; border:1px solid #c4b5fd; padding:8px 18px; border-radius:8px; font-weight:700; cursor:pointer;" disabled>
-                            ⏹️ Pausar
-                        </button>
-                        <button onclick="copiarTexto()" style="background:#ede9fe; color:#4c1d95; border:1px solid #c4b5fd; padding:8px 18px; border-radius:8px; font-weight:700; cursor:pointer;">
-                            📋 Copiar Transcripción
-                        </button>
-                        <span id="status_live" style="margin-left:auto; font-size:0.85rem; font-weight:700; color:#64748b; display:flex; align-items:center;">
-                            ⚪ Micrófono inactivo
-                        </span>
-                    </div>
-                    <textarea id="live_transcript_box" placeholder="Lo que hable el docente irá apareciendo aquí en tiempo real de forma continua..." style="width:100%; height:130px; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px; font-family:'Segoe UI', sans-serif; font-size:0.95rem; color:#1e1b4b; resize:vertical;"></textarea>
-                </div>
+                nom_sesion = st.text_input("Tema / Título de la sesión:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"title_{nombre_mat}")
 
-                <script>
-                let recognition = null;
-                let recognizing = false;
+                col_rec, col_file = st.columns([1, 2])
+                with col_rec:
+                    st.markdown("**🎙️ Grabar con Micrófono:**")
+                    audio_mic_bytes = audio_recorder(
+                        text="Clic para Grabar",
+                        recording_color="#e11d48",
+                        neutral_color="#6214c7",
+                        icon_size="2x",
+                        key=f"audio_mic_{modulo_actual}_{nombre_mat}"
+                    )
+                with col_file:
+                    st.markdown("**📁 O Subir Archivo de Audio:**")
+                    archivo_subido = st.file_uploader("Formatos (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"up_{modulo_actual}_{nombre_mat}")
 
-                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {{
-                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    recognition = new SpeechRecognition();
-                    recognition.continuous = true;
-                    recognition.interimResults = true;
-                    recognition.lang = 'es-CL';
+                # Audio final a procesar
+                audio_bytes_final = None
+                mime_final = "audio/wav"
+                ext_final = "wav"
 
-                    recognition.onstart = function() {{
-                        recognizing = true;
-                        document.getElementById('status_live').innerHTML = '🔴 <span style="color:#e11d48; margin-left:4px;">Escuchando clase en vivo...</span>';
-                        document.getElementById('btn_start_rec').disabled = true;
-                        document.getElementById('btn_stop_rec').disabled = false;
-                    }};
+                if audio_mic_bytes is not None:
+                    audio_bytes_final = audio_mic_bytes
+                    mime_final = "audio/wav"
+                    ext_final = "wav"
+                    st.audio(audio_bytes_final, format="audio/wav")
+                elif archivo_subido is not None:
+                    audio_bytes_final = archivo_subido.read()
+                    ext_final = archivo_subido.name.split(".")[-1].lower()
+                    mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "m4a": "audio/mp4"}
+                    mime_final = mime_map.get(ext_final, "audio/wav")
+                    st.audio(audio_bytes_final, format=mime_final)
 
-                    recognition.onresult = function(event) {{
-                        let final_transcript = '';
-                        for (let i = 0; i < event.results.length; ++i) {{
-                            final_transcript += event.results[i][0].transcript;
-                        }}
-                        document.getElementById('live_transcript_box').value = final_transcript;
-                    }};
-
-                    recognition.onerror = function(event) {{
-                        console.error("Speech error", event.error);
-                        document.getElementById('status_live').innerHTML = '⚠️ Error en micrófono: ' + event.error;
-                    }};
-
-                    recognition.onend = function() {{
-                        recognizing = false;
-                        document.getElementById('status_live').innerHTML = '⚪ Micrófono en pausa';
-                        document.getElementById('btn_start_rec').disabled = false;
-                        document.getElementById('btn_stop_rec').disabled = true;
-                    }};
-                }} else {{
-                    document.getElementById('status_live').innerHTML = '⚠️ Tu navegador no soporta reconocimiento WebSpeech.';
-                }}
-
-                function iniciarEscucha() {{
-                    if (recognition && !recognizing) {{
-                        recognition.start();
-                    }}
-                }}
-
-                function detenerEscucha() {{
-                    if (recognition && recognizing) {{
-                        recognition.stop();
-                    }}
-                }}
-
-                function copiarTexto() {{
-                    const copyText = document.getElementById("live_transcript_box");
-                    copyText.select();
-                    document.execCommand("copy");
-                }}
-                </script>
-                """
-                components.html(html_live_transcription, height=220)
-
-                # Formulario para procesar lo escuchado con Gemini 3.6 Flash
-                col_live_t, col_live_btn = st.columns([3, 1])
-                with col_live_t:
-                    nom_sesion_live = st.text_input("Título de la clase:", placeholder="Ej. Clase 2: Metodología de Caso Social", key=f"t_live_{nombre_mat}")
-                    texto_a_estructurar = st.text_area("Pega o complementa la transcripción en vivo aquí para estructurarla con IA:", placeholder="Pega el texto transcrito arriba o escribe lo tratado...", height=110, key=f"t_trans_{nombre_mat}")
-                
-                with col_live_btn:
-                    st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
-                    if st.button("✨ Estructurar Apuntes con Gemini", key=f"btn_est_{nombre_mat}", use_container_width=True):
+                if audio_bytes_final is not None:
+                    if st.button("✨ Procesar Audio y Generar Apuntes Estructurados", key=f"btn_gen_{nombre_mat}"):
                         client = obtener_cliente_ia()
-                        if not texto_a_estructurar.strip():
-                            st.error("Pega o escribe el contenido transcrito para procesarlo.")
-                        elif not client:
-                            st.error("API Key de Gemini no configurada.")
+                        if not client:
+                            st.error("⚠️ Clave GEMINI_API_KEY no configurada en los Secrets de Streamlit.")
                         else:
-                            titulo_final = nom_sesion_live.strip() if nom_sesion_live.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"
-                            with st.spinner("🤖 Gemini 3.6 Flash está estructurando, redactando y corrigiendo tus apuntes en vivo..."):
+                            titulo_final = nom_sesion.strip() if nom_sesion.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"
+                            
+                            # Guardar archivo físico en grabaciones
+                            nombre_archivo_audio = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_final}"
+                            ruta_audio_dest = os.path.join(DIR_AUDIO_RAW, nombre_archivo_audio)
+                            with open(ruta_audio_dest, "wb") as f_aud:
+                                f_aud.write(audio_bytes_final)
+                            
+                            db["grabaciones"].append({
+                                "titulo": titulo_final,
+                                "materia": nombre_mat,
+                                "modulo": modulo_actual,
+                                "fecha": datetime.now(tz_cl).strftime("%Y-%m-%d %H:%M"),
+                                "ruta": ruta_audio_dest
+                            })
+
+                            with st.spinner("🤖 Gemini 3.6 Flash está escuchando el audio, corrigiendo y redactando los apuntes estructurados..."):
                                 prompt_apuntes = f"""
                                 Eres una asistente universitaria de excelencia para la estudiante Francesca Fellay.
-                                Transforma esta transcripción de la clase universitaria '{nombre_mat}' en unos apuntes impecables, estructurados y corregidos:
-                                Título: {titulo_final}
-                                Transcripción recibida:
-                                {texto_a_estructurar}
-
-                                Genera los apuntes con esta estructura:
+                                Escucha con total precisión este audio de la clase universitaria de '{nombre_mat}'.
+                                Título de la sesión: {titulo_final}.
+                                
+                                Genera unos apuntes completos, organizados y profesionales con:
                                 # 📌 Resumen Ejecutivo de la Clase
                                 ## 🎯 Objetivos y Temas Principales Abordados
-                                ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas, definiciones y explicaciones)
+                                ## 📝 Desarrollo Detallado y Conceptos Clave (viñetas, definiciones y explicaciones claras)
                                 ## 💡 Ejemplos Prácticos y Casos Mencionados
                                 ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
                                 """
                                 try:
                                     resp = client.models.generate_content(
                                         model=MODELO_GEMINI,
-                                        contents=prompt_apuntes
+                                        contents=[
+                                            types.Part.from_bytes(data=audio_bytes_final, mime_type=mime_final),
+                                            prompt_apuntes
+                                        ]
                                     )
                                     info_mat["clases"].append({
                                         "id": f"clase_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
@@ -596,19 +550,19 @@ with pestañas_principales[0]:
                                         "chat": []
                                     })
                                     guardar_estado(db)
-                                    st.success("¡Apuntes creados exitosamente!")
+                                    st.success("¡Apuntes generados y guardados exitosamente!")
                                     st.rerun()
                                 except Exception as e:
-                                    st.error(f"Error al generar apuntes: {e}")
+                                    st.error(f"Error al procesar el audio con Gemini: {e}")
 
                 st.markdown("---")
 
-                # --- CUADERNO DE APUNTES REGISTRADOS Y EDITOR EN VIVO ---
+                # Cuaderno de apuntes
                 st.markdown("#### 📚 Cuaderno de Apuntes Registrados")
                 clases_guardadas = info_mat.get("clases", [])
                 
                 if not clases_guardadas:
-                    st.info("Aún no hay apuntes en esta materia. Usa la transcripción en vivo arriba para comenzar.")
+                    st.info("Aún no hay apuntes en esta materia. Graba con tu micrófono arriba para comenzar.")
                 else:
                     for idx_c, clase in enumerate(reversed(clases_guardadas)):
                         idx_real = len(clases_guardadas) - 1 - idx_c
