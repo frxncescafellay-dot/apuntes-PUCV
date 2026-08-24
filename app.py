@@ -486,7 +486,7 @@ with pestañas_principales[0]:
                                         )
                                     except Exception:
                                         resp = client.models.generate_content(
-                                            model="gemini-2.5-flash",
+                                            model="gemini-3.6-flash",
                                             contents=[
                                                 types.Part.from_bytes(data=audio_bytes_capturados, mime_type=mime_capturado),
                                                 prompt_live
