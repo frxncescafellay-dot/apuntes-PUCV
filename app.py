@@ -306,6 +306,24 @@ div[data-baseweb="popover"] * {
     background-color: #ede9fe !important;
     color: #2e1065 !important;
 }
+
+/* REMOVER FONDO NEGRO DEL BOTÓN DEL MICRÓFONO (audio_recorder) */
+iframe[title*="audio_recorder"] {
+    background-color: #ede9fe !important;
+    border: 1.5px solid #c4b5fd !important;
+    border-radius: 10px !important;
+    padding: 4px !important;
+}
+
+/* ETIQUETAS DE CARGADOR DE ARCHIVOS Y TEXTOS ASOCIADOS EN MORADO */
+div[data-testid="stFileUploader"] label,
+div[data-testid="stFileUploader"] label p,
+div[data-testid="stFileUploader"] label span,
+div[data-testid="stFileUploader"] small,
+div[data-testid="stFileUploader"] div {
+    color: #3b0764 !important;
+    font-weight: 750 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -511,7 +529,7 @@ with pestañas_principales[0]:
 
                 c_audio_rec, c_audio_up = st.columns([1, 2])
                 with c_audio_rec:
-                    st.markdown("<p style='color:#3b0764; font-weight:700;'>1. Capturar Voz en Vivo (Micrófono):</p>", unsafe_allow_html=True)
+                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>1. Capturar Voz en Vivo (Micrófono):</p>", unsafe_allow_html=True)
                     live_audio_chunk = audio_recorder(
                         text="Clic para Hablar / Pausar",
                         recording_color="#e11d48",
@@ -520,7 +538,6 @@ with pestañas_principales[0]:
                         key=f"rec_stream_{modulo_actual}_{nombre_mat}"
                     )
                 with c_audio_up:
-                    st.markdown("<p style='color:#3b0764; font-weight:700;'>2. O Cargar Audio de la Clase:</p>", unsafe_allow_html=True)
                     uploaded_chunk = st.file_uploader("Subir archivo (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"up_stream_{modulo_actual}_{nombre_mat}")
 
                 audio_chunk_to_process = None
