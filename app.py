@@ -1,14 +1,12 @@
 import os
 import io
 import json
-import base64
 from datetime import datetime
 import pytz
 import pandas as pd
 import streamlit as st
 from PIL import Image
-from google import genai
-from google.genai import types
+from openai import OpenAI
 
 # --- CONFIGURACION DE PAGINA ---
 st.set_page_config(
@@ -27,26 +25,26 @@ FILE_DB = os.path.join(DIR_BASE, "cuadernos_db.json")
 for d in [DIR_BASE, DIR_AUDIO_RAW, DIR_PERFILES]:
     os.makedirs(d, exist_ok=True)
 
-MODELO_GEMINI = "gemini-3.6-flash"
+MODELO_CHAT = "gpt-4o-mini"
 
-# --- OBTENCION SEGURA DE API KEY ---
+# --- OBTENCION SEGURA DE API KEY OPENAI ---
 def obtener_api_key():
-    if "GEMINI_API_KEY" in st.secrets:
-        return st.secrets["GEMINI_API_KEY"]
-    return os.environ.get("GEMINI_API_KEY", "")
+    if "OPENAI_API_KEY" in st.secrets:
+        return st.secrets["OPENAI_API_KEY"]
+    return os.environ.get("OPENAI_API_KEY", "")
 
-API_KEY_GEMINI = obtener_api_key()
+API_KEY_OPENAI = obtener_api_key()
 
 def obtener_cliente_ia():
-    if not API_KEY_GEMINI:
+    if not API_KEY_OPENAI:
         return None
     try:
-        return genai.Client(api_key=API_KEY_GEMINI)
+        return OpenAI(api_key=API_KEY_OPENAI)
     except Exception as e:
-        st.error(f"Error al conectar cliente Gemini: {e}")
+        st.error(f"Error al conectar con OpenAI: {e}")
         return None
 
-# --- ESTILOS VISUALES SKILLPATH (LAVANDA & MORADO) ---
+# --- ESTILOS VISUALES SKILLPATH ---
 st.markdown("""
 <style>
 html, body, [class*="css"], .stApp { 
@@ -334,7 +332,7 @@ st.markdown(f"""
 <div class='brand-navbar'>
     <div class='brand-title'>
         <span>⚡ SkillPath</span>
-        <span style='font-size:0.9rem; font-weight:500; opacity:0.85;'>| Plataforma de Apuntes Inteligentes & Audio en Vivo</span>
+        <span style='font-size:0.9rem; font-weight:500; opacity:0.85;'>| Plataforma de Apuntes en Vivo & IA</span>
     </div>
     <div style='font-size:0.88rem; font-weight:600;'>🇨🇱 {hora_actual}</div>
 </div>
@@ -353,13 +351,13 @@ with pestañas_principales[0]:
     st.markdown(f"""
     <div class='welcome-card'>
         <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
-        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Motor de IA: <b>Gemini 3.6 Flash</b>.</p>
+        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Motor activo: <b>GPT-4o mini & Whisper</b>.</p>
     </div>
     <div class='stats-grid'>
         <div class='stat-card-1'><div class='stat-value'>{total_carpetas}</div><div class='stat-label'>Materias / Carpetas</div></div>
         <div class='stat-card-2'><div class='stat-value'>{total_clases}</div><div class='stat-label'>Clases Procesadas</div></div>
         <div class='stat-card-3'><div class='stat-value'>{len(db['grabaciones'])}</div><div class='stat-label'>Audios Grabados</div></div>
-        <div class='stat-card-4'><div class='stat-value'>⚡ Gemini 3.6 Flash</div><div class='stat-label'>Motor Inteligente</div></div>
+        <div class='stat-card-4'><div class='stat-value'>⚡ OpenAI</div><div class='stat-label'>Whisper + GPT-4o</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -411,9 +409,9 @@ with pestañas_principales[0]:
 
                 st.markdown("""
                 <div class='app-card'>
-                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo: Redacción & Organización Instantánea con Gemini</h4>
+                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo: Transcripción & Estructuración con OpenAI</h4>
                     <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
-                        Usa los botones nativos del micrófono para grabar la clase. <b>Gemini 3.6 Flash</b> irá redactando y estructurando los apuntes en viñetas, conceptos clave en negrita y explicaciones en el recuadro inferior en tiempo real.
+                        Graba con los botones nativos del micrófono. Al detener la intervención, <b>Whisper</b> transcribirá el audio y <b>GPT-4o</b> organizará la clase en viñetas, conceptos clave y explicaciones en tiempo real.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -431,72 +429,72 @@ with pestañas_principales[0]:
                     uploaded_live_in = st.file_uploader("Formatos soportados (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"live_up_in_{modulo_actual}_{nombre_mat}")
 
                 audio_bytes_capturados = None
-                mime_capturado = "audio/wav"
                 ext_capturado = "wav"
 
                 if audio_live_in is not None:
                     audio_bytes_capturados = audio_live_in.getvalue()
-                    mime_capturado = "audio/wav"
                     ext_capturado = "wav"
                 elif uploaded_live_in is not None:
                     audio_bytes_capturados = uploaded_live_in.getvalue()
                     ext_capturado = uploaded_live_in.name.split(".")[-1].lower()
-                    mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "m4a": "audio/mp4"}
-                    mime_capturado = mime_map.get(ext_capturado, "audio/wav")
 
-                # PROCESAMIENTO REACTIVO AUTOMÁTICO EN TIEMPO REAL
+                # PROCESAMIENTO REACTIVO EN TIEMPO REAL CON OPENAI (WHISPER + GPT-4O)
                 if audio_bytes_capturados is not None:
                     audio_sig = f"{len(audio_bytes_capturados)}_{hash(audio_bytes_capturados[:64])}"
                     
                     if audio_sig != st.session_state[session_key_last_proc]:
                         client = obtener_cliente_ia()
                         if not client:
-                            st.error("⚠️ Clave GEMINI_API_KEY no configurada en Secrets de Streamlit.")
+                            st.error("⚠️ Clave OPENAI_API_KEY no configurada en Secrets de Streamlit.")
                         else:
-                            with st.spinner("⚡ Gemini 3.6 Flash está analizando la clase y organizando tus apuntes en viñetas estructuradas..."):
-                                prompt_live = f"""
-                                Eres la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
-                                Título de la clase: {nom_sesion_live if nom_sesion_live.strip() else 'Clase Universitaria'}.
-                                
-                                BORRADOR ACTUAL DE LOS APUNTES:
-                                \"\"\"
-                                {st.session_state[session_key_borrador] if st.session_state[session_key_borrador] else 'Comienzo de clase. Inicia la estructura formal.'}
-                                \"\"\"
-                                
-                                INSTRUCCIONES ESTRICTAS:
-                                1. Analiza exhaustivamente el audio de la clase universitaria proporcionado.
-                                2. Integra y redacta inmediatamente los nuevos temas, conceptos clave, autores y debates.
-                                3. Si en el borrador anterior hubo errores de dicción o conceptos incompletos, CORRÍGELOS integrando el nuevo contexto sin perder el hilo.
-                                4. Estructura el contenido con la siguiente plantilla formal y profesional:
-                                   # 📌 Resumen Ejecutivo de la Clase
-                                   ## 🎯 Objetivos y Temas Principales
-                                   ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas claras, definiciones y explicaciones en negrita)
-                                   ## 💡 Ejemplos Prácticos y Casos Mencionados
-                                   ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
-                                """
+                            with st.spinner("⚡ Transcribiendo con Whisper y estructurando apuntes con GPT-4o..."):
                                 try:
-                                    # Intentar con gemini-3.6-flash y resolver con fallback si la clave tiene restricciones
-                                    try:
-                                        resp = client.models.generate_content(
-                                            model=MODELO_GEMINI,
-                                            contents=[
-                                                types.Part.from_bytes(data=audio_bytes_capturados, mime_type=mime_capturado),
-                                                prompt_live
-                                            ]
-                                        )
-                                    except Exception:
-                                        resp = client.models.generate_content(
-                                            model="gemini-3.6-flash",
-                                            contents=[
-                                                types.Part.from_bytes(data=audio_bytes_capturados, mime_type=mime_capturado),
-                                                prompt_live
-                                            ]
-                                        )
+                                    # 1. Transcripción con Whisper
+                                    audio_buffer = io.BytesIO(audio_bytes_capturados)
+                                    audio_buffer.name = f"audio_temp.{ext_capturado}"
+                                    
+                                    transcripcion = client.audio.transcriptions.create(
+                                        model="whisper-1",
+                                        file=audio_buffer,
+                                        language="es"
+                                    )
+                                    texto_transcrito = transcripcion.text
 
-                                    st.session_state[session_key_borrador] = resp.text
+                                    # 2. Estructuración con GPT-4o mini
+                                    prompt_live = f"""
+                                    Eres la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
+                                    Título de la clase: {nom_sesion_live if nom_sesion_live.strip() else 'Clase Universitaria'}.
+                                    
+                                    BORRADOR ACTUAL DE LOS APUNTES:
+                                    \"\"\"
+                                    {st.session_state[session_key_borrador] if st.session_state[session_key_borrador] else 'Comienzo de clase. Inicia la estructura formal.'}
+                                    \"\"\"
+                                    
+                                    NUEVA TRANSCRIPCIÓN DE LA CLASE:
+                                    \"\"\"
+                                    {texto_transcrito}
+                                    \"\"\"
+                                    
+                                    INSTRUCCIONES ESTRICTAS:
+                                    1. Integra la nueva información al borrador sin repetir conceptos.
+                                    2. Redacta apuntes claros y estructurados usando la siguiente plantilla:
+                                       # 📌 Resumen Ejecutivo de la Clase
+                                       ## 🎯 Objetivos y Temas Principales
+                                       ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas claras, definiciones y explicaciones en negrita)
+                                       ## 💡 Ejemplos Prácticos y Casos Mencionados
+                                       ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
+                                    """
+
+                                    resp = client.chat.completions.create(
+                                        model=MODELO_CHAT,
+                                        messages=[{"role": "user", "content": prompt_live}],
+                                        temperature=0.3
+                                    )
+                                    
+                                    st.session_state[session_key_borrador] = resp.choices[0].message.content
                                     st.session_state[session_key_last_proc] = audio_sig
 
-                                    # Guardar en grabaciones originales
+                                    # Guardar archivo físico en el repositorio de grabaciones
                                     n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_capturado}"
                                     r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)
                                     with open(r_dest, "wb") as f_raw:
@@ -510,9 +508,9 @@ with pestañas_principales[0]:
                                         "ruta": r_dest
                                     })
                                     guardar_estado(db)
-                                    st.success("✅ ¡Apuntes redactados y organizados en tiempo real!")
+                                    st.success("✅ ¡Apuntes redactados y organizados con éxito!")
                                 except Exception as e:
-                                    st.error(f"Error procesando audio con Gemini: {e}")
+                                    st.error(f"Error procesando con OpenAI: {e}")
 
                 # --- CUADRO DE TEXTO: ORGANIZACIÓN DE APUNTES EN VIVO ---
                 st.markdown("##### 📝 Cuadro de Apuntes Estructurados en Tiempo Real:")
@@ -544,7 +542,7 @@ with pestañas_principales[0]:
                 else:
                     st.markdown("""
                     <div class='live-notes-box' style='color:#94a3b8; font-style:italic;'>
-                        Presiona el botón nativo del micrófono arriba para empezar a grabar. <b>Gemini 3.6 Flash</b> irá redactando aquí los apuntes organizados en viñetas, conceptos clave y explicaciones a medida que se desarrolla la clase...
+                        Presiona el botón nativo del micrófono arriba para empezar a grabar. La IA irá redactando aquí los apuntes organizados en viñetas, conceptos clave y explicaciones a medida que se desarrolla la clase...
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -586,7 +584,7 @@ with pestañas_principales[0]:
                                 if mensaje["rol"] == "user":
                                     st.markdown(f"**Tú:** {mensaje['texto']}")
                                 else:
-                                    st.markdown(f"**🤖 Gemini 3.6 Flash:** {mensaje['texto']}")
+                                    st.markdown(f"**🤖 Tutor IA:** {mensaje['texto']}")
 
                             with st.form(f"form_chat_{clase['id']}"):
                                 pregunta_usuario = st.text_input("Haz una pregunta sobre el contenido de esta clase:", placeholder="Ej. ¿Qué autores se citaron?", key=f"inp_chat_{clase['id']}")
@@ -602,15 +600,15 @@ with pestañas_principales[0]:
                                             Pregunta: {pregunta_usuario}
                                             """
                                             try:
-                                                resp_chat = client.models.generate_content(
-                                                    model=MODELO_GEMINI,
-                                                    contents=p_chat
+                                                resp_chat = client.chat.completions.create(
+                                                    model=MODELO_CHAT,
+                                                    messages=[{"role": "user", "content": p_chat}]
                                                 )
                                                 if "chat" not in clases_guardadas[idx_real]:
                                                     clases_guardadas[idx_real]["chat"] = []
                                                 
                                                 clases_guardadas[idx_real]["chat"].append({"rol": "user", "texto": pregunta_usuario})
-                                                clases_guardadas[idx_real]["chat"].append({"rol": "ai", "texto": resp_chat.text})
+                                                clases_guardadas[idx_real]["chat"].append({"rol": "ai", "texto": resp_chat.choices[0].message.content})
                                                 guardar_estado(db)
                                                 st.rerun()
                                             except Exception as e:
