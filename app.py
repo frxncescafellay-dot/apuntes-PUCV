@@ -42,7 +42,7 @@ def obtener_cliente_ia():
         return None
     return genai.Client(api_key=API_KEY_GEMINI)
 
-# --- ESTILOS VISUALES SKILLPATH ---
+# --- ESTILOS CSS ---
 st.markdown("""
 <style>
 html, body, [class*="css"], .stApp { 
@@ -72,7 +72,7 @@ html, body, [class*="css"], .stApp {
     color: #ffffff !important;
 }
 
-/* BARRA LATERAL CON EL MORADO EXACTO DE SKILLPATH */
+/* BARRA LATERAL SKILLPATH */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #6214c7 0%, #520eb0 100%) !important;
     border-right: 1.5px solid #450c96 !important;
@@ -149,7 +149,7 @@ section[data-testid="stSidebar"] input[type="text"]:focus {
     box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3) !important;
 }
 
-/* Selector desplegable en Sidebar (Selectbox) */
+/* Selector en Sidebar */
 section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
     background-color: #ede9fe !important;
     border: 1.5px solid #c4b5fd !important;
@@ -277,8 +277,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
     border-bottom: 3.5px solid #6214c7 !important;
 }
 
-/* QUITAR FONDO NEGRO DE CARGADORES Y AUDIOS (LAVANDA PASTEL) */
-iframe[title*="audio_recorder"],
+/* CONTENEDOR LAVANDA LIMPIO PARA CARGADOR DE ARCHIVOS */
 div[data-testid="stFileUploader"],
 div[data-testid="stFileUploader"] section {
     background-color: #ede9fe !important;
@@ -301,13 +300,6 @@ div[data-testid="stFileUploader"] button p {
     font-weight: 700 !important;
 }
 
-div[data-baseweb="popover"],
-div[data-baseweb="popover"] * {
-    background-color: #ede9fe !important;
-    color: #2e1065 !important;
-}
-
-/* ETIQUETAS DE CARGADOR DE ARCHIVOS Y TEXTOS ASOCIADOS EN MORADO */
 div[data-testid="stFileUploader"] label,
 div[data-testid="stFileUploader"] label p,
 div[data-testid="stFileUploader"] label span,
@@ -317,26 +309,29 @@ div[data-testid="stFileUploader"] div {
     font-weight: 750 !important;
 }
 
-/* ESTILIZACIÓN DEL BOTÓN DE MICRÓFONO EN VIVO (CARD PÍLDORA SKILLPATH) */
+/* CONTENEDOR TRANSPARENTE / SIN BORDES NEGROS PARA EL MICRÓFONO */
 iframe[title*="audio_recorder"] {
-    background: #ede9fe !important;
-    border: 2px solid #a78bfa !important;
-    border-radius: 14px !important;
-    padding: 6px 14px !important;
-    height: 58px !important;
-    width: 100% !important;
-    max-width: 260px !important;
-    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.15) !important;
-    filter: invert(1) hue-rotate(180deg) brightness(1.2) contrast(1.1) !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    height: 52px !important;
+    width: auto !important;
+    filter: none !important;
 }
 
-div[data-testid="stFileUploader"] {
-    margin-top: 0px !important;
+.mic-card-wrapper {
+    background: #ede9fe;
+    border: 1.5px dashed #8b5cf6;
+    border-radius: 12px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# --- GESTOR DE PERSISTENCIA CON MIGRACIÓN AUTOMÁTICA ---
+# --- GESTOR DE PERSISTENCIA ---
 def cargar_estado():
     if not os.path.exists(FILE_DB):
         data_inicial = {
@@ -380,7 +375,7 @@ def guardar_estado(data):
 
 db = cargar_estado()
 
-# --- BARRA LATERAL: PERFIL DE USUARIO ---
+# --- BARRA LATERAL: PERFIL ---
 st.sidebar.markdown("### 🎓 Mi Perfil Académico")
 perfil = db.get("perfil", {})
 avatar_path = perfil.get("avatar", "")
@@ -438,7 +433,7 @@ with st.sidebar.expander("➕ Crear Nuevo Módulo"):
             st.success("Módulo creado con éxito.")
             st.rerun()
 
-# --- HEADER BRAND SKILLPATH ---
+# --- HEADER BRAND ---
 tz_cl = pytz.timezone("America/Santiago")
 hora_actual = datetime.now(tz_cl).strftime("%d/%m/%Y | %H:%M:%S")
 
@@ -456,7 +451,7 @@ st.markdown(f"""
 pestañas_principales = st.tabs(["📁 Mis Carpetas & Clases", "🎙️ Grabaciones Originales"])
 
 # ==========================================
-# 1. MIS CARPETAS & CLASES (CUADERNOS)
+# 1. MIS CARPETAS & CLASES
 # ==========================================
 with pestañas_principales[0]:
     carpetas_modulo = db["modulos"][modulo_actual]["carpetas"]
@@ -518,7 +513,7 @@ with pestañas_principales[0]:
                 <div class='app-card'>
                     <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo & Apuntes Continuos con Autocorrección</h4>
                     <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
-                        Pulsa el micrófono para grabar un segmento de la clase. Cada vez que captures voz, <b>Gemini 3.6 Flash</b> integrará lo escuchado al borrador en tiempo real, corrigiendo lapsus o términos y organizando los conceptos sin perder el hilo.
+                        Pulsa el micrófono para hablar. Cada segmento capturado se integrará al borrador estructurado en tiempo real con <b>Gemini 3.6 Flash</b>, corrigiendo términos sin perder el hilo.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -536,16 +531,28 @@ with pestañas_principales[0]:
                         st.session_state[session_key_borrador] = ""
                         st.rerun()
 
-                c_audio_rec, c_audio_up = st.columns([1, 2])
+                c_audio_rec, c_audio_up = st.columns([1, 1.4])
                 with c_audio_rec:
                     st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>1. Capturar Voz en Vivo (Micrófono):</p>", unsafe_allow_html=True)
+                    
+                    st.markdown("<div class='mic-card-wrapper'>", unsafe_allow_html=True)
                     live_audio_chunk = audio_recorder(
-                        text="Clic para Hablar / Pausar",
+                        text="Grabar / Pausar",
                         recording_color="#e11d48",
                         neutral_color="#6214c7",
                         icon_size="2x",
-                        key=f"rec_stream_{modulo_actual}_{nombre_mat}"
+                        key=f"rec_stream_{modulo_actual}_{nombre_mat}",
+                        custom_style={
+                            "background-color": "#ede9fe",
+                            "color": "#3b0764",
+                            "border-radius": "10px",
+                            "padding": "4px 10px",
+                            "font-family": "Segoe UI, sans-serif",
+                            "font-weight": "700"
+                        }
                     )
+                    st.markdown("</div>", unsafe_allow_html=True)
+
                 with c_audio_up:
                     st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>2. O Cargar Audio de la Clase:</p>", unsafe_allow_html=True)
                     uploaded_chunk = st.file_uploader("Subir archivo (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"up_stream_{modulo_actual}_{nombre_mat}")
@@ -598,7 +605,6 @@ with pestañas_principales[0]:
                                 )
                                 st.session_state[session_key_borrador] = resp_stream.text
 
-                                # Guardar archivo físico en el repositorio de grabaciones
                                 n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_chunk}"
                                 r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)
                                 with open(r_dest, "wb") as f_raw:
