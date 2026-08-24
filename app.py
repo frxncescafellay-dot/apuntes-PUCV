@@ -25,8 +25,8 @@ FILE_DB = os.path.join(DIR_BASE, "cuadernos_db.json")
 for d in [DIR_BASE, DIR_AUDIO_RAW, DIR_PERFILES]:
     os.makedirs(d, exist_ok=True)
 
-# MODELOS OFICIALES Y ACTIVOS DE GROQ
-MODELO_CHAT = "llama-3.1-70b-versatile"
+# MODELOS COMPATIBLES DE GROQ
+MODELOS_TEXTO = ["llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768", "gemma2-9b-it"]
 MODELO_WHISPER = "whisper-large-v3"
 
 # --- OBTENCION SEGURA DE API KEY GROQ ---
@@ -45,6 +45,22 @@ def obtener_cliente_ia():
     except Exception as e:
         st.error(f"Error al conectar con Groq: {e}")
         return None
+
+def ejecutar_chat_groq(client, prompt_sistema, prompt_usuario):
+    for model_id in MODELOS_TEXTO:
+        try:
+            resp = client.chat.completions.create(
+                model=model_id,
+                messages=[
+                    {"role": "system", "content": prompt_sistema},
+                    {"role": "user", "content": prompt_usuario}
+                ],
+                temperature=0.3
+            )
+            return resp.choices[0].message.content
+        except Exception:
+            continue
+    raise Exception("No se pudo conectar con ningún modelo de texto activo en Groq.")
 
 # --- ESTILOS VISUALES SKILLPATH (LAVANDA & MORADO) ---
 st.markdown("""
@@ -353,13 +369,13 @@ with pestañas_principales[0]:
     st.markdown(f"""
     <div class='welcome-card'>
         <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
-        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Motor activo: <b>Groq (Whisper + Llama 3.1)</b>.</p>
+        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Motor activo: <b>Groq Ultra-Speed</b>.</p>
     </div>
     <div class='stats-grid'>
         <div class='stat-card-1'><div class='stat-value'>{total_carpetas}</div><div class='stat-label'>Materias / Carpetas</div></div>
         <div class='stat-card-2'><div class='stat-value'>{total_clases}</div><div class='stat-label'>Clases Procesadas</div></div>
         <div class='stat-card-3'><div class='stat-value'>{len(db['grabaciones'])}</div><div class='stat-label'>Audios Grabados</div></div>
-        <div class='stat-card-4'><div class='stat-value'>⚡ Groq IA</div><div class='stat-label'>Llama 3.1 70B</div></div>
+        <div class='stat-card-4'><div class='stat-value'>⚡ Groq IA</div><div class='stat-label'>Whisper + Llama 3</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -413,7 +429,7 @@ with pestañas_principales[0]:
                 <div class='app-card'>
                     <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo: Transcripción & Estructuración Instantánea</h4>
                     <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
-                        Graba con los botones nativos del micrófono. <b>Whisper Large</b> transcribirá la voz y <b>Llama 3.1</b> redactará y organizará la clase en viñetas, conceptos clave y explicaciones en tiempo real.
+                        Graba con los botones nativos del micrófono. <b>Whisper Large</b> transcribirá la voz y <b>Llama 3</b> redactará y organizará la clase en viñetas, conceptos clave y explicaciones en tiempo real.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -440,7 +456,7 @@ with pestañas_principales[0]:
                     audio_bytes_capturados = uploaded_live_in.getvalue()
                     ext_capturado = uploaded_live_in.name.split(".")[-1].lower()
 
-                # PROCESAMIENTO REACTIVO EN TIEMPO REAL CON GROQ (WHISPER + LLAMA 3.1)
+                # PROCESAMIENTO REACTIVO EN TIEMPO REAL CON GROQ (WHISPER + LLAMA 3)
                 if audio_bytes_capturados is not None:
                     audio_sig = f"{len(audio_bytes_capturados)}_{hash(audio_bytes_capturados[:64])}"
                     
@@ -449,7 +465,7 @@ with pestañas_principales[0]:
                         if not client:
                             st.error("⚠️ Clave GROQ_API_KEY no configurada en Secrets de Streamlit.")
                         else:
-                            with st.spinner("⚡ Transcribiendo con Whisper y estructurando apuntes con Llama 3.1..."):
+                            with st.spinner("⚡ Transcribiendo con Whisper y estructurando apuntes con Llama 3..."):
                                 try:
                                     # 1. Transcripción con Whisper Large V3
                                     audio_buffer = io.BytesIO(audio_bytes_capturados)
@@ -462,9 +478,9 @@ with pestañas_principales[0]:
                                     )
                                     texto_transcrito = transcripcion.text
 
-                                    # 2. Estructuración con Llama 3.1
-                                    prompt_live = f"""
-                                    Eres la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
+                                    # 2. Estructuración con Llama 3
+                                    prompt_sys = f"Eres la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'."
+                                    prompt_user = f"""
                                     Título de la clase: {nom_sesion_live if nom_sesion_live.strip() else 'Clase Universitaria'}.
                                     
                                     BORRADOR ACTUAL DE LOS APUNTES:
@@ -487,21 +503,9 @@ with pestañas_principales[0]:
                                        ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
                                     """
 
-                                    # Fallback dinámico entre modelos activos de Groq
-                                    try:
-                                        resp = client.chat.completions.create(
-                                            model=MODELO_CHAT,
-                                            messages=[{"role": "user", "content": prompt_live}],
-                                            temperature=0.3
-                                        )
-                                    except Exception:
-                                        resp = client.chat.completions.create(
-                                            model="llama-3.1-8b-instant",
-                                            messages=[{"role": "user", "content": prompt_live}],
-                                            temperature=0.3
-                                        )
+                                    apuntes_generados = ejecutar_chat_groq(client, prompt_sys, prompt_user)
                                     
-                                    st.session_state[session_key_borrador] = resp.choices[0].message.content
+                                    st.session_state[session_key_borrador] = apuntes_generados
                                     st.session_state[session_key_last_proc] = audio_sig
 
                                     # Guardar archivo físico en el repositorio de grabaciones
@@ -602,23 +606,15 @@ with pestañas_principales[0]:
                                     client = obtener_cliente_ia()
                                     if client:
                                         with st.spinner("Pensando respuesta..."):
-                                            p_chat = f"""
-                                            Eres un tutor académico de apoyo para la estudiante Francesca Fellay.
-                                            Contexto de los apuntes ({clase['titulo']}):
-                                            {clase['contenido']}
-                                            
-                                            Pregunta: {pregunta_usuario}
-                                            """
+                                            p_sys = "Eres un tutor académico de apoyo para la estudiante Francesca Fellay."
+                                            p_user = f"Contexto de los apuntes ({clase['titulo']}):\n{clase['contenido']}\n\nPregunta: {pregunta_usuario}"
                                             try:
-                                                resp_chat = client.chat.completions.create(
-                                                    model="llama-3.1-8b-instant",
-                                                    messages=[{"role": "user", "content": p_chat}]
-                                                )
+                                                resp_tutor = ejecutar_chat_groq(client, p_sys, p_user)
                                                 if "chat" not in clases_guardadas[idx_real]:
                                                     clases_guardadas[idx_real]["chat"] = []
                                                 
                                                 clases_guardadas[idx_real]["chat"].append({"rol": "user", "texto": pregunta_usuario})
-                                                clases_guardadas[idx_real]["chat"].append({"rol": "ai", "texto": resp_chat.choices[0].message.content})
+                                                clases_guardadas[idx_real]["chat"].append({"rol": "ai", "texto": resp_tutor})
                                                 guardar_estado(db)
                                                 st.rerun()
                                             except Exception as e:
