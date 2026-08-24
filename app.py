@@ -309,29 +309,26 @@ div[data-testid="stFileUploader"] div {
     font-weight: 750 !important;
 }
 
-/* CONTENEDOR TRANSPARENTE / SIN BORDES NEGROS PARA EL MICRÓFONO */
-iframe[title*="audio_recorder"] {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    height: 52px !important;
-    width: auto !important;
-    filter: none !important;
-}
-
-.mic-card-wrapper {
-    background: #ede9fe;
+/* ENVOLTORIO LAVANDA PERSONALIZADO PARA EL MICRÓFONO */
+.mic-clean-box {
+    background-color: #ede9fe;
     border: 1.5px dashed #8b5cf6;
     border-radius: 12px;
-    padding: 12px 18px;
+    padding: 14px 18px;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 12px;
+}
+
+iframe[title*="audio_recorder"] {
+    border: none !important;
+    background: transparent !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# --- GESTOR DE PERSISTENCIA ---
+# --- GESTOR DE PERSISTENCIA CON MIGRACIÓN AUTOMÁTICA ---
 def cargar_estado():
     if not os.path.exists(FILE_DB):
         data_inicial = {
@@ -357,6 +354,7 @@ def cargar_estado():
         except Exception:
             data = {"perfil": {"nombre": "Francesca Fellay", "universidad": "Pontificia Universidad Católica de Valparaíso", "ubicacion": "Valparaíso, Chile", "avatar": ""}, "modulos": {"6to Semestre TSL": {"carpetas": {}}}, "grabaciones": []}
     
+    # Migración automática del nombre guardado anteriormente en el JSON existente
     if "modulos" in data:
         if "6to semestre TSL" in data["modulos"]:
             contenido_viejo = data["modulos"].pop("6to semestre TSL")
@@ -375,7 +373,7 @@ def guardar_estado(data):
 
 db = cargar_estado()
 
-# --- BARRA LATERAL: PERFIL ---
+# --- BARRA LATERAL: PERFIL DE USUARIO ---
 st.sidebar.markdown("### 🎓 Mi Perfil Académico")
 perfil = db.get("perfil", {})
 avatar_path = perfil.get("avatar", "")
@@ -433,7 +431,7 @@ with st.sidebar.expander("➕ Crear Nuevo Módulo"):
             st.success("Módulo creado con éxito.")
             st.rerun()
 
-# --- HEADER BRAND ---
+# --- HEADER BRAND SKILLPATH ---
 tz_cl = pytz.timezone("America/Santiago")
 hora_actual = datetime.now(tz_cl).strftime("%d/%m/%Y | %H:%M:%S")
 
@@ -451,7 +449,7 @@ st.markdown(f"""
 pestañas_principales = st.tabs(["📁 Mis Carpetas & Clases", "🎙️ Grabaciones Originales"])
 
 # ==========================================
-# 1. MIS CARPETAS & CLASES
+# 1. MIS CARPETAS & CLASES (CUADERNOS)
 # ==========================================
 with pestañas_principales[0]:
     carpetas_modulo = db["modulos"][modulo_actual]["carpetas"]
@@ -535,23 +533,15 @@ with pestañas_principales[0]:
                 with c_audio_rec:
                     st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>1. Capturar Voz en Vivo (Micrófono):</p>", unsafe_allow_html=True)
                     
-                    st.markdown("<div class='mic-card-wrapper'>", unsafe_allow_html=True)
+                    st.markdown("<div class='mic-clean-box'>", unsafe_allow_html=True)
                     live_audio_chunk = audio_recorder(
-                        text="Grabar / Pausar",
+                        text="",
                         recording_color="#e11d48",
                         neutral_color="#6214c7",
                         icon_size="2x",
-                        key=f"rec_stream_{modulo_actual}_{nombre_mat}",
-                        custom_style={
-                            "background-color": "#ede9fe",
-                            "color": "#3b0764",
-                            "border-radius": "10px",
-                            "padding": "4px 10px",
-                            "font-family": "Segoe UI, sans-serif",
-                            "font-weight": "700"
-                        }
+                        key=f"rec_stream_{modulo_actual}_{nombre_mat}"
                     )
-                    st.markdown("</div>", unsafe_allow_html=True)
+                    st.markdown("<span style='color:#3b0764; font-weight:750; font-size:0.95rem;'>Presiona el micrófono para Grabar / Pausar</span></div>", unsafe_allow_html=True)
 
                 with c_audio_up:
                     st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>2. O Cargar Audio de la Clase:</p>", unsafe_allow_html=True)
