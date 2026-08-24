@@ -1,12 +1,10 @@
 import os
 import io
 import json
-import base64
 from datetime import datetime
 import pytz
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 from PIL import Image
 from google import genai
 from google.genai import types
@@ -121,10 +119,6 @@ div[data-testid="stExpander"] summary {
 div[data-testid="stExpander"] summary * {
     color: #ffffff !important;
     font-weight: 750 !important;
-}
-div[data-testid="stExpander"] summary svg {
-    fill: #ffffff !important;
-    color: #ffffff !important;
 }
 div[data-testid="stExpander"] div[role="region"] {
     background-color: #ffffff !important;
@@ -242,31 +236,37 @@ input[type="text"], textarea {
     font-weight: 500 !important;
 }
 
-/* CARGADOR DE ARCHIVOS */
+/* CARGADOR DE ARCHIVOS Y AUDIO INPUT NATIVO EN LAVANDA */
 div[data-testid="stFileUploader"],
-div[data-testid="stFileUploader"] section {
+div[data-testid="stFileUploader"] section,
+div[data-testid="stAudioInput"],
+div[data-testid="stAudioInput"] section {
     background-color: #ede9fe !important;
     border: 1.5px dashed #8b5cf6 !important;
     border-radius: 12px !important;
 }
-div[data-testid="stFileUploader"] section * {
+
+div[data-testid="stFileUploader"] section *,
+div[data-testid="stAudioInput"] * {
     color: #3b0764 !important;
+    font-weight: 700 !important;
 }
+
 div[data-testid="stFileUploader"] label,
-div[data-testid="stFileUploader"] label p,
-div[data-testid="stFileUploader"] label span,
-div[data-testid="stFileUploader"] small,
-div[data-testid="stFileUploader"] div {
+div[data-testid="stAudioInput"] label {
     color: #3b0764 !important;
     font-weight: 750 !important;
 }
-div[data-testid="stFileUploader"] button {
+
+div[data-testid="stFileUploader"] button,
+div[data-testid="stAudioInput"] button {
     background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%) !important;
     border: none !important;
     border-radius: 8px !important;
     color: #ffffff !important;
 }
-div[data-testid="stFileUploader"] button p {
+div[data-testid="stFileUploader"] button p,
+div[data-testid="stAudioInput"] button p {
     color: #ffffff !important;
     font-weight: 700 !important;
 }
@@ -451,9 +451,9 @@ with pestañas_principales[0]:
                 
                 st.markdown("""
                 <div class='app-card'>
-                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Consola de Grabación en Vivo con Botones Independientes</h4>
+                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabador Nativo de Clase & Apuntes con Autocorrección en Vivo</h4>
                     <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
-                        Controla la grabación con los botones dedicados. Cada segmento o archivo de audio se procesará con <b>Gemini 3.6 Flash</b> para redactar, organizar y autocorregir tus apuntes en tiempo real.
+                        Graba directamente con el micrófono de tu dispositivo. <b>Gemini 3.6 Flash</b> redactará, organizará y corregirá tus apuntes en tiempo real manteniendo la continuidad.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -471,139 +471,33 @@ with pestañas_principales[0]:
                         st.session_state[session_key_borrador] = ""
                         st.rerun()
 
-                # --- SUITE DE GRABACIÓN NATIVA: BOTONES INICIAR, PAUSAR Y DETENER ---
+                # --- GRABADOR NATIVO DE STREAMLIT (SIN IFRAMES ROTOS) ---
                 c_suite_rec, c_suite_up = st.columns([1.2, 1.2])
                 with c_suite_rec:
-                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>1. Grabar con Micrófono (Controles Dedicados):</p>", unsafe_allow_html=True)
-                    
-                    html_recorder_suite = """
-                    <div style="background-color: #ede9fe; border: 1.5px dashed #8b5cf6; border-radius: 14px; padding: 14px 16px; font-family: 'Segoe UI', sans-serif;">
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
-                            <button id="rec_start" onclick="iniciarGrabacion()" style="background: linear-gradient(135deg, #6214c7, #7c24ec); color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 750; font-size: 0.88rem; cursor: pointer; box-shadow: 0 3px 8px rgba(98, 20, 199, 0.25);">
-                                🔴 Iniciar
-                            </button>
-                            <button id="rec_pause" onclick="pausarGrabacion()" style="background: #ffffff; color: #4c1d95; border: 1.5px solid #c4b5fd; padding: 8px 14px; border-radius: 8px; font-weight: 750; font-size: 0.88rem; cursor: pointer;" disabled>
-                                ⏸️ Pausar
-                            </button>
-                            <button id="rec_stop" onclick="detenerGrabacion()" style="background: #ffffff; color: #b91c1c; border: 1.5px solid #fca5a5; padding: 8px 14px; border-radius: 8px; font-weight: 750; font-size: 0.88rem; cursor: pointer;" disabled>
-                                ⏹️ Detener
-                            </button>
-                            <span id="rec_timer" style="margin-left: auto; font-weight: 800; color: #3b0764; display: flex; align-items: center; font-size: 0.95rem;">
-                                00:00
-                            </span>
-                        </div>
-                        <div id="rec_status" style="font-size: 0.83rem; font-weight: 700; color: #6d28d9;">
-                            ⚪ Listo para iniciar grabación
-                        </div>
-                        <audio id="audio_preview" controls style="width: 100%; height: 32px; margin-top: 8px; display: none;"></audio>
-                        <a id="download_link" style="display: none; font-size: 0.85rem; color: #6214c7; font-weight: 800; text-decoration: underline; margin-top: 6px;">📥 Descargar Audio Grabado (.webm)</a>
-                    </div>
-
-                    <script>
-                    let mediaRecorder = null;
-                    let audioChunks = [];
-                    let timerInterval = null;
-                    let secondsElapsed = 0;
-
-                    function formatearTiempo(sec) {
-                        const m = Math.floor(sec / 60).toString().padStart(2, '0');
-                        const s = (sec % 60).toString().padStart(2, '0');
-                        return m + ':' + s;
-                    }
-
-                    async function iniciarGrabacion() {
-                        try {
-                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            mediaRecorder = new MediaRecorder(stream);
-                            audioChunks = [];
-
-                            mediaRecorder.ondataavailable = event => {
-                                if (event.data.size > 0) audioChunks.push(event.data);
-                            };
-
-                            mediaRecorder.onstop = () => {
-                                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                                const audioUrl = URL.createObjectURL(audioBlob);
-                                const preview = document.getElementById('audio_preview');
-                                const dl = document.getElementById('download_link');
-                                preview.src = audioUrl;
-                                preview.style.display = 'block';
-                                dl.href = audioUrl;
-                                dl.download = 'Grabacion_Clase.webm';
-                                dl.style.display = 'inline-block';
-                                dl.innerText = '📥 Descargar Audio Grabado (' + formatearTiempo(secondsElapsed) + ')';
-                                document.getElementById('rec_status').innerHTML = '✅ Audio listo para subir y procesar.';
-                            };
-
-                            mediaRecorder.start(1000);
-                            document.getElementById('rec_start').disabled = true;
-                            document.getElementById('rec_pause').disabled = false;
-                            document.getElementById('rec_stop').disabled = false;
-                            document.getElementById('rec_status').innerHTML = '🔴 <span style="color:#b91c1c;">Grabando clase en vivo...</span>';
-
-                            secondsElapsed = 0;
-                            clearInterval(timerInterval);
-                            timerInterval = setInterval(() => {
-                                secondsElapsed++;
-                                document.getElementById('rec_timer').innerText = formatearTiempo(secondsElapsed);
-                            }, 1000);
-
-                        }} catch (err) {
-                            document.getElementById('rec_status').innerHTML = '⚠️ Error de micrófono: ' + err.message;
-                        }
-                    }
-
-                    function pausarGrabacion() {
-                        if (mediaRecorder) {
-                            if (mediaRecorder.state === 'recording') {
-                                mediaRecorder.pause();
-                                clearInterval(timerInterval);
-                                document.getElementById('rec_pause').innerText = '▶️ Reanudar';
-                                document.getElementById('rec_status').innerHTML = '⏸️ Grabación en pausa';
-                            } else if (mediaRecorder.state === 'paused') {
-                                mediaRecorder.resume();
-                                timerInterval = setInterval(() => {
-                                    secondsElapsed++;
-                                    document.getElementById('rec_timer').innerText = formatearTiempo(secondsElapsed);
-                                }, 1000);
-                                document.getElementById('rec_pause').innerText = '⏸️ Pausar';
-                                document.getElementById('rec_status').innerHTML = '🔴 <span style="color:#b91c1c;">Grabando...</span>';
-                            }
-                        }
-                    }
-
-                    function detenerGrabacion() {
-                        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                            mediaRecorder.stop();
-                            mediaRecorder.stream.getTracks().forEach(t => t.stop());
-                            clearInterval(timerInterval);
-                            document.getElementById('rec_start').disabled = false;
-                            document.getElementById('rec_pause').disabled = true;
-                            document.getElementById('rec_pause').innerText = '⏸️ Pausar';
-                            document.getElementById('rec_stop').disabled = true;
-                        }
-                    }
-                    </script>
-                    """
-                    components.html(html_recorder_suite, height=160)
+                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>1. Grabar con Micrófono:</p>", unsafe_allow_html=True)
+                    audio_grabado_nativo = st.audio_input("Presiona para iniciar grabación de voz:", key=f"audio_inp_nativo_{modulo_actual}_{nombre_mat}")
 
                 with c_suite_up:
-                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>2. Subir Audio para Procesar con Gemini:</p>", unsafe_allow_html=True)
-                    uploaded_chunk = st.file_uploader("Formatos (.wav, .mp3, .m4a, .webm):", type=["wav", "mp3", "m4a", "webm"], key=f"up_stream_{modulo_actual}_{nombre_mat}")
+                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>2. O Subir Audio de Clase:</p>", unsafe_allow_html=True)
+                    uploaded_chunk = st.file_uploader("Formatos (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"up_stream_{modulo_actual}_{nombre_mat}")
 
                 audio_chunk_to_process = None
                 mime_chunk = "audio/wav"
                 ext_chunk = "wav"
 
-                if uploaded_chunk is not None:
+                if audio_grabado_nativo is not None:
+                    audio_chunk_to_process = audio_grabado_nativo.read()
+                    mime_chunk = "audio/wav"
+                    ext_chunk = "wav"
+                elif uploaded_chunk is not None:
                     audio_chunk_to_process = uploaded_chunk.read()
                     ext_chunk = uploaded_chunk.name.split(".")[-1].lower()
-                    mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "m4a": "audio/mp4", "webm": "audio/webm"}
+                    mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "m4a": "audio/mp4"}
                     mime_chunk = mime_map.get(ext_chunk, "audio/wav")
 
                 # Procesamiento incremental en caliente con Gemini
                 if audio_chunk_to_process is not None:
-                    if st.button("✨ Procesar Audio y Actualizar Apuntes", key=f"btn_proc_stream_{nombre_mat}"):
+                    if st.button("✨ Procesar Audio y Actualizar Apuntes en Vivo", key=f"btn_proc_stream_{nombre_mat}"):
                         client = obtener_cliente_ia()
                         if client:
                             with st.spinner("🤖 Gemini 3.6 Flash está procesando el audio en vivo, corrigiendo y actualizando tus apuntes..."):
