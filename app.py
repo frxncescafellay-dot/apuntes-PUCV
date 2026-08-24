@@ -6,7 +6,6 @@ from datetime import datetime
 import pytz
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 from PIL import Image
 from google import genai
 from google.genai import types
@@ -41,7 +40,11 @@ API_KEY_GEMINI = obtener_api_key()
 def obtener_cliente_ia():
     if not API_KEY_GEMINI:
         return None
-    return genai.Client(api_key=API_KEY_GEMINI)
+    try:
+        return genai.Client(api_key=API_KEY_GEMINI)
+    except Exception as e:
+        st.error(f"Error al inicializar cliente Gemini: {e}")
+        return None
 
 # --- ESTILOS CSS ---
 st.markdown("""
@@ -206,21 +209,26 @@ div[data-testid="stDownloadButton"]>button {
     font-weight: 750 !important;
 }
 
-/* ÁREA DE PROCESAMIENTO EN VIVO */
-div[data-testid="stAudioInput"] {
-    background-color: #ede9fe !important;
-    border: 2px dashed #8b5cf6 !important;
-    border-radius: 14px !important;
-    padding: 12px !important;
+input[type="text"], textarea {
+    background-color: #f8fafc !important;
+    color: #1e1b4b !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
 }
-div[data-testid="stAudioInput"] * {
+
+/* INPUT DE AUDIO Y CARGADOR */
+div[data-testid="stAudioInput"],
+div[data-testid="stFileUploader"] {
+    background-color: #ede9fe !important;
+    border: 1.5px dashed #8b5cf6 !important;
+    border-radius: 12px !important;
+    padding: 10px !important;
+}
+div[data-testid="stAudioInput"] *,
+div[data-testid="stFileUploader"] * {
     color: #3b0764 !important;
     font-weight: 750 !important;
-}
-div[data-testid="stAudioInput"] button {
-    background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%) !important;
-    color: #ffffff !important;
-    border-radius: 8px !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -354,7 +362,7 @@ with pestañas_principales[0]:
     st.markdown(f"""
     <div class='welcome-card'>
         <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
-        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Apuntes en caliente con autocorrección instantánea (Gemini 3.6 Flash).</p>
+        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Apuntes estructurados y corregidos en tiempo real con Gemini 3.6 Flash.</p>
     </div>
     <div class='stats-grid'>
         <div class='stat-card-1'><div class='stat-value'>{total_carpetas}</div><div class='stat-label'>Materias / Carpetas</div></div>
@@ -401,20 +409,16 @@ with pestañas_principales[0]:
                 st.markdown(f"### 📖 {nombre_mat}")
                 st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
                 
-                # --- SISTEMA DE GENERACIÓN CONTINUA DE APUNTES EN VIVO ---
+                # --- SISTEMA DE GENERACIÓN DE APUNTES ---
                 session_key_borrador = f"live_notes_draft_{modulo_actual}_{nombre_mat}"
-                session_key_processed = f"processed_audios_{modulo_actual}_{nombre_mat}"
-
                 if session_key_borrador not in st.session_state:
                     st.session_state[session_key_borrador] = ""
-                if session_key_processed not in st.session_state:
-                    st.session_state[session_key_processed] = []
 
                 st.markdown("""
                 <div class='app-card'>
-                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Captura de Audio & Generación de Apuntes en Tiempo Real</h4>
+                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo & Redacción de Apuntes Inteligentes</h4>
                     <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
-                        Graba o sube intervenciones de la clase. Tan pronto entra el audio, <b>Gemini 3.6 Flash</b> lo analiza de inmediato, integrando los conceptos al cuaderno en tiempo real, corrigiendo lapsus o errores y enriqueciendo la estructura sin perder el hilo.
+                        Graba con el micrófono o sube el audio de la clase. Al pulsar <b>'✨ Procesar Audio y Actualizar Apuntes'</b>, <b>Gemini 3.6 Flash</b> transcribirá, organizará, corregirá posibles errores de dicción y redactará tus notas en caliente.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -426,7 +430,6 @@ with pestañas_principales[0]:
                     st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
                     if st.button("🔄 Reiniciar Borrador en Vivo", key=f"btn_reset_{nombre_mat}"):
                         st.session_state[session_key_borrador] = ""
-                        st.session_state[session_key_processed] = []
                         st.rerun()
 
                 c_rec_live, c_up_live = st.columns([1.2, 1.2])
@@ -438,81 +441,81 @@ with pestañas_principales[0]:
                     st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>2. O Subir Audio de Clase:</p>", unsafe_allow_html=True)
                     uploaded_live_in = st.file_uploader("Formatos (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"live_up_in_{modulo_actual}_{nombre_mat}")
 
-                # Determinar si hay nuevo audio entrante para auto-procesar en caliente
-                nuevo_audio_bytes = None
-                mime_audio_in = "audio/wav"
-                ext_audio_in = "wav"
-                audio_id = None
+                # Determinar audio seleccionado
+                audio_a_procesar_bytes = None
+                mime_final = "audio/wav"
+                ext_final = "wav"
 
                 if audio_live_in is not None:
-                    nuevo_audio_bytes = audio_live_in.getvalue()
-                    mime_audio_in = "audio/wav"
-                    ext_audio_in = "wav"
-                    audio_id = f"mic_{hash(nuevo_audio_bytes)}"
+                    audio_a_procesar_bytes = audio_live_in.getvalue()
+                    mime_final = "audio/wav"
+                    ext_final = "wav"
                 elif uploaded_live_in is not None:
-                    nuevo_audio_bytes = uploaded_live_in.getvalue()
-                    ext_audio_in = uploaded_live_in.name.split(".")[-1].lower()
+                    audio_a_procesar_bytes = uploaded_live_in.getvalue()
+                    ext_final = uploaded_live_in.name.split(".")[-1].lower()
                     mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "m4a": "audio/mp4"}
-                    mime_audio_in = mime_map.get(ext_audio_in, "audio/wav")
-                    audio_id = f"file_{uploaded_live_in.name}_{len(nuevo_audio_bytes)}"
+                    mime_final = mime_map.get(ext_final, "audio/wav")
 
-                # AUTO-PROCESAMIENTO EN TIEMPO REAL: Si hay audio y no ha sido procesado en este ciclo
-                if nuevo_audio_bytes is not None and audio_id not in st.session_state[session_key_processed]:
-                    client = obtener_cliente_ia()
-                    if client:
-                        with st.spinner("⚡ Gemini 3.6 Flash está analizando la voz, redactando y autocorrigiendo los apuntes en caliente..."):
-                            prompt_live = f"""
-                            Actúa como la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
-                            
-                            ESTADO ACTUAL DEL CUADERNO DE APUNTES:
-                            \"\"\"
-                            {st.session_state[session_key_borrador] if st.session_state[session_key_borrador] else 'Comienzo de clase. Inicia la estructura formal.'}
-                            \"\"\"
-                            
-                            INSTRUCCIONES DE ACTUALIZACIÓN EN TIEMPO REAL:
-                            1. Escucha este nuevo audio de la clase universitaria.
-                            2. Redacta, organiza e integra inmediatamente los nuevos temas, conceptos clave, autores y debates tratados.
-                            3. Si en el borrador anterior hubo errores de dicción, nombres mal escritos o frases incompletas, CORRÍGELOS inmediatamente integrando el nuevo contexto sin perder el hilo.
-                            4. Mantén y enriquece siempre la estructura profesional formal:
-                               # 📌 Resumen Ejecutivo de la Clase
-                               ## 🎯 Objetivos y Temas Principales
-                               ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas y definiciones claras)
-                               ## 💡 Ejemplos Prácticos y Casos Mencionados
-                               ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
-                            """
-                            try:
-                                resp = client.models.generate_content(
-                                    model=MODELO_GEMINI,
-                                    contents=[
-                                        types.Part.from_bytes(data=nuevo_audio_bytes, mime_type=mime_audio_in),
-                                        prompt_live
-                                    ]
-                                )
-                                st.session_state[session_key_borrador] = resp.text
-                                st.session_state[session_key_processed].append(audio_id)
-
-                                # Guardar archivo físico en el repositorio permanente
-                                n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_audio_in}"
-                                r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)
-                                with open(r_dest, "wb") as f_raw:
-                                    f_raw.write(nuevo_audio_bytes)
+                # Botón de Procesamiento con Gemini 3.6 Flash
+                if audio_a_procesar_bytes is not None:
+                    if st.button("✨ Procesar Audio y Actualizar Apuntes con IA", key=f"btn_proc_stream_{nombre_mat}", use_container_width=True):
+                        client = obtener_cliente_ia()
+                        if not client:
+                            st.error("⚠️ Clave GEMINI_API_KEY no encontrada en los Secrets de Streamlit.")
+                        else:
+                            with st.spinner("🤖 Gemini 3.6 Flash está escuchando, redactando y autocorrigiendo tus apuntes..."):
+                                prompt_live = f"""
+                                Actúa como la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
                                 
-                                db["grabaciones"].append({
-                                    "titulo": nom_sesion_live if nom_sesion_live.strip() else f"Grabación {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}",
-                                    "materia": nombre_mat,
-                                    "modulo": modulo_actual,
-                                    "fecha": datetime.now(tz_cl).strftime("%Y-%m-%d %H:%M"),
-                                    "ruta": r_dest
-                                })
-                                guardar_estado(db)
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Error procesando audio en tiempo real: {e}")
+                                BORRADOR ACTUAL DE LOS APUNTES:
+                                \"\"\"
+                                {st.session_state[session_key_borrador] if st.session_state[session_key_borrador] else 'Comienzo de clase. Inicia la estructura formal.'}
+                                \"\"\"
+                                
+                                INSTRUCCIONES:
+                                1. Analiza con máxima precisión este audio de la clase universitaria.
+                                2. Redacta, organiza e integra inmediatamente los nuevos temas, conceptos clave, autores, metodologías y debates tratados.
+                                3. Si en el borrador anterior hubo errores de dicción, nombres mal escritos o frases incompletas, CORRÍGELOS inmediatamente integrando el nuevo contexto sin perder el hilo.
+                                4. Mantén y enriquece siempre la estructura profesional formal:
+                                   # 📌 Resumen Ejecutivo de la Clase
+                                   ## 🎯 Objetivos y Temas Principales
+                                   ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas, definiciones y explicaciones claras)
+                                   ## 💡 Ejemplos Prácticos y Casos Mencionados
+                                   ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
+                                """
+                                try:
+                                    resp = client.models.generate_content(
+                                        model=MODELO_GEMINI,
+                                        contents=[
+                                            types.Part.from_bytes(data=audio_a_procesar_bytes, mime_type=mime_final),
+                                            prompt_live
+                                        ]
+                                    )
+                                    st.session_state[session_key_borrador] = resp.text
+
+                                    # Guardar archivo físico de audio
+                                    n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_final}"
+                                    r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)
+                                    with open(r_dest, "wb") as f_raw:
+                                        f_raw.write(audio_a_procesar_bytes)
+                                    
+                                    db["grabaciones"].append({
+                                        "titulo": nom_sesion_live if nom_sesion_live.strip() else f"Grabación {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}",
+                                        "materia": nombre_mat,
+                                        "modulo": modulo_actual,
+                                        "fecha": datetime.now(tz_cl).strftime("%Y-%m-%d %H:%M"),
+                                        "ruta": r_dest
+                                    })
+                                    guardar_estado(db)
+                                    st.success("¡Apuntes redactados y actualizados exitosamente con Gemini!")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Error al procesar el audio con Gemini: {e}")
 
                 # --- VISOR Y EDITOR DE APUNTES EN VIVO ---
-                st.markdown("##### 📝 Cuaderno en Tiempo Real (Actualización & Edición en Vivo):")
+                st.markdown("##### 📝 Cuaderno de Apuntes (Edición y Actualización Continua):")
                 texto_en_vivo_editado = st.text_area(
-                    "Los apuntes se van redactando, estructurando y corrigiendo aquí automáticamente a medida que entra el audio de la clase:",
+                    "Tus apuntes estructurados aparecerán aquí tras procesar el audio (puedes editarlos a mano libremente):",
                     value=st.session_state[session_key_borrador],
                     height=360,
                     key=f"live_draft_editor_{nombre_mat}"
@@ -523,7 +526,7 @@ with pestañas_principales[0]:
                 with col_save_live1:
                     if st.button("💾 Finalizar y Guardar Clase en el Cuaderno Permanente", key=f"btn_save_permanent_{nombre_mat}"):
                         if not st.session_state[session_key_borrador].strip():
-                            st.warning("El borrador está vacío. Graba o sube audio primero.")
+                            st.warning("El borrador está vacío. Graba y procesa un audio primero.")
                         else:
                             titulo_final = nom_sesion_live.strip() if nom_sesion_live.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"
                             info_mat["clases"].append({
@@ -535,8 +538,7 @@ with pestañas_principales[0]:
                             })
                             guardar_estado(db)
                             st.session_state[session_key_borrador] = ""
-                            st.session_state[session_key_processed] = []
-                            st.success("¡Clase guardada exitosamente en tu cuaderno!")
+                            st.success("¡Clase guardada exitosamente en tu cuaderno permanente!")
                             st.rerun()
 
                 st.markdown("---")
