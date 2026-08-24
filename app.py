@@ -290,7 +290,7 @@ def cargar_estado():
         data_inicial = {
             "perfil": {
                 "nombre": "Francesca Fellay",
-                "universidad": "Pontificia Universidad Católica de Valparaíso",
+                "universidad": "Universidad de Playa Ancha",
                 "ubicacion": "Valparaíso, Chile",
                 "avatar": ""
             },
@@ -307,7 +307,7 @@ def cargar_estado():
         try:
             data = json.load(f)
         except Exception:
-            data = {"perfil": {"nombre": "Francesca Fellay", "universidad": "Universidad", "ubicacion": "Chile", "avatar": ""}, "modulos": {"6to semestre TSL": {"carpetas": {}}}, "grabaciones": []}
+            data = {"perfil": {"nombre": "Francesca Fellay", "universidad": "Universidad", "ubicacion": "Chile", "avatar": ""}, "modulos": {"6to Semestre TSL": {"carpetas": {}}}, "grabaciones": []}
     return data
 
 def guardar_estado(data):
@@ -359,9 +359,9 @@ st.sidebar.markdown("<hr style='border:0.5px solid rgba(255,255,255,0.2); margin
 st.sidebar.markdown("### 📚 Selector de Módulo")
 lista_modulos = list(db["modulos"].keys())
 if not lista_modulos:
-    db["modulos"]["6to semestre TSL"] = {"carpetas": {}}
+    db["modulos"]["6to Semestre TSL"] = {"carpetas": {}}
     guardar_estado(db)
-    lista_modulos = ["6to semestre TSL"]
+    lista_modulos = ["6to Semestre TSL"]
 
 modulo_actual = st.sidebar.selectbox("Módulo Activo:", lista_modulos)
 
