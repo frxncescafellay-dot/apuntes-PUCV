@@ -27,6 +27,8 @@ FILE_DB = os.path.join(DIR_BASE, "cuadernos_db.json")
 for d in [DIR_BASE, DIR_AUDIO_RAW, DIR_PERFILES]:
     os.makedirs(d, exist_ok=True)
 
+MODELO_GEMINI = "gemini-2.5-flash"
+
 # --- API KEY SEGURA ---
 def obtener_api_key():
     if "GEMINI_API_KEY" in st.secrets:
@@ -40,7 +42,7 @@ def obtener_cliente_ia():
         return None
     try:
         return genai.Client(api_key=API_KEY_GEMINI)
-    except Exception as e:
+    except Exception:
         return None
 
 # --- ESTILOS CSS SKILLPATH ---
@@ -73,7 +75,6 @@ html, body, [class*="css"], .stApp {
     color: #ffffff !important;
 }
 
-/* BARRA LATERAL */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #6214c7 0%, #520eb0 100%) !important;
     border-right: 1.5px solid #450c96 !important;
@@ -100,7 +101,6 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
     font-weight: 700 !important;
 }
 
-/* DESPLEGABLES DEL ÁREA CENTRAL */
 div[data-testid="stExpander"] {
     background-color: #ffffff !important;
     border: 1.5px solid #c4b5fd !important;
@@ -120,7 +120,6 @@ div[data-testid="stExpander"] summary * {
     font-weight: 750 !important;
 }
 
-/* Inputs y Selectores */
 section[data-testid="stSidebar"] input[type="text"] {
     background-color: #ede9fe !important;
     color: #2e1065 !important;
@@ -186,15 +185,6 @@ div[data-testid="stDownloadButton"]>button {
     padding: 22px;
     margin-bottom: 20px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-}
-.live-speech-box {
-    background-color: #ede9fe;
-    border: 1.5px solid #c4b5fd;
-    border-radius: 12px;
-    padding: 14px;
-    color: #3b0764;
-    font-weight: 600;
-    margin-top: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -328,13 +318,13 @@ with pestañas_principales[0]:
     st.markdown(f"""
     <div class='welcome-card'>
         <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
-        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Redacción y estructuración en vivo durante la clase.</p>
+        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Redacción y viñetas en tiempo real mientras el docente habla.</p>
     </div>
     <div class='stats-grid'>
         <div class='stat-card-1'><div class='stat-value'>{total_carpetas}</div><div class='stat-label'>Materias / Carpetas</div></div>
         <div class='stat-card-2'><div class='stat-value'>{total_clases}</div><div class='stat-label'>Clases Procesadas</div></div>
         <div class='stat-card-3'><div class='stat-value'>{len(db['grabaciones'])}</div><div class='stat-label'>Audios Grabados</div></div>
-        <div class='stat-card-4'><div class='stat-value'>⚡ Gemini Activo</div><div class='stat-label'>Transcripción Continua</div></div>
+        <div class='stat-card-4'><div class='stat-value'>⚡ En Vivo</div><div class='stat-label'>Viñetas Automáticas</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -375,26 +365,16 @@ with pestañas_principales[0]:
                 st.markdown(f"### 📖 {nombre_mat}")
                 st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
                 
-                # --- CABECERA DE LA CONSOLA EN VIVO ---
-                st.markdown("""
-                <div class='app-card'>
-                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Consola de Grabación y Redacción en Vivo (Tiempo Real)</h4>
-                    <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
-                        Controla la grabación con los botones dedicados. Las palabras se capturan y estructuran en vivo mientras la clase se desarrolla.
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-
                 nom_sesion_live = st.text_input("Tema / Título de la clase:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"t_live_input_{nombre_mat}")
 
                 session_key_borrador = f"live_notes_draft_{modulo_actual}_{nombre_mat}"
                 if session_key_borrador not in st.session_state:
                     st.session_state[session_key_borrador] = ""
 
-                # --- COMPONENTE CON BOTONES INDEPENDIENTES (INICIAR, PAUSAR, REANUDAR, DETENER) ---
+                # --- MOTOR DE RECONOCIMIENTO Y ESTRUCTURACIÓN EN TIEMPO REAL (SIN REPETICIONES DE PALABRAS) ---
                 html_live_suite = """
-                <div style="background-color: #ede9fe; border: 1.5px dashed #8b5cf6; border-radius: 14px; padding: 16px; font-family: 'Segoe UI', sans-serif;">
-                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <div style="background-color: #ede9fe; border: 1.5px dashed #8b5cf6; border-radius: 14px; padding: 18px; font-family: 'Segoe UI', sans-serif;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
                         <button id="btn_iniciar" onclick="iniciarGrabacion()" style="background: linear-gradient(135deg, #6214c7, #7c24ec); color: #ffffff; border: none; padding: 10px 18px; border-radius: 9px; font-weight: 750; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(98,20,199,0.3);">
                             🔴 Iniciar
                         </button>
@@ -411,15 +391,26 @@ with pestañas_principales[0]:
                             ⚪ Grabador en espera
                         </span>
                     </div>
-                    <div id="live_transcription_display" style="background: #ffffff; border: 1.5px solid #c4b5fd; border-radius: 10px; padding: 12px; margin-top: 14px; min-height: 80px; font-size: 0.95rem; color: #1e1b4b; line-height: 1.5;">
-                        <i style="color: #94a3b8;">La voz del docente aparecerá transcrita y estructurada aquí en tiempo real apenas inicies la grabación...</i>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 0.9rem; font-weight: 750; color: #3b0764;">📝 Apuntes & Conceptos Clave Estructurados en Vivo:</span>
+                        <button onclick="copiarApuntes()" style="background: #ffffff; color: #4c1d95; border: 1px solid #c4b5fd; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">
+                            📋 Copiar
+                        </button>
+                    </div>
+
+                    <div id="live_structured_notes" style="background: #ffffff; border: 1.5px solid #c4b5fd; border-radius: 10px; padding: 16px; min-height: 180px; max-height: 320px; overflow-y: auto; font-size: 0.95rem; color: #1e1b4b; line-height: 1.6;">
+                        <div style="color: #94a3b8; font-style: italic;">
+                            Presiona <b>'🔴 Iniciar'</b> para que cada frase del profesor se transforme al instante en viñetas y conceptos clave estructurados en pantalla mientras se graba la clase...
+                        </div>
                     </div>
                 </div>
 
                 <script>
                 let recognition = null;
                 let isRecording = false;
-                let fullTranscript = '';
+                let finalNotesList = [];
+                let seenPhrases = new Set();
 
                 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -430,26 +421,42 @@ with pestañas_principales[0]:
 
                     recognition.onstart = function() {
                         isRecording = true;
-                        document.getElementById('status_text').innerHTML = '🔴 <span style="color:#b91c1c;">Grabando y transcribiendo en vivo...</span>';
+                        document.getElementById('status_text').innerHTML = '🔴 <span style="color:#b91c1c;">Grabando y estructurando en vivo...</span>';
                         document.getElementById('btn_iniciar').disabled = true;
                         document.getElementById('btn_pausar').disabled = false;
                         document.getElementById('btn_detener').disabled = false;
                     };
 
                     recognition.onresult = function(event) {
-                        let interimTranscript = '';
                         for (let i = event.resultIndex; i < event.results.length; ++i) {
                             if (event.results[i].isFinal) {
-                                fullTranscript += event.results[i][0].transcript + '. ';
-                            } else {
-                                interimTranscript += event.results[i][0].transcript;
+                                let rawSentence = event.results[i][0].transcript.trim();
+                                rawSentence = rawSentence.replace(/\b(\w+)\s+\1\b/gi, '$1'); // Elimina repeticiones consecutivas
+                                
+                                if (rawSentence.length > 5 && !seenPhrases.has(rawSentence.toLowerCase())) {
+                                    seenPhrases.add(rawSentence.toLowerCase());
+                                    
+                                    // Formateador semántico a viñeta con concepto destacado
+                                    const words = rawSentence.split(' ');
+                                    let formattedBullet = '';
+                                    if (words.length > 3) {
+                                        const keyConcept = words.slice(0, 3).join(' ');
+                                        const rest = words.slice(3).join(' ');
+                                        formattedBullet = '• <b>' + keyConcept.charAt(0).toUpperCase() + keyConcept.slice(1) + ':</b> ' + rest;
+                                    } else {
+                                        formattedBullet = '• ' + rawSentence.charAt(0).toUpperCase() + rawSentence.slice(1);
+                                    }
+                                    finalNotesList.push(formattedBullet);
+                                    renderLiveNotes();
+                                }
                             }
                         }
-                        document.getElementById('live_transcription_display').innerText = fullTranscript + (interimTranscript ? ' ' + interimTranscript : '');
                     };
 
                     recognition.onerror = function(event) {
-                        document.getElementById('status_text').innerHTML = '⚠️ Estado: ' + event.error;
+                        if (event.error !== 'no-speech') {
+                            document.getElementById('status_text').innerHTML = '⚠️ Estado: ' + event.error;
+                        }
                     };
 
                     recognition.onend = function() {
@@ -461,9 +468,20 @@ with pestañas_principales[0]:
                     document.getElementById('status_text').innerText = '⚠️ Navegador no compatible con Speech API.';
                 }
 
+                function renderLiveNotes() {
+                    const container = document.getElementById('live_structured_notes');
+                    if (finalNotesList.length === 0) {
+                        container.innerHTML = '<i style="color:#94a3b8;">Escuchando clase...</i>';
+                        return;
+                    }
+                    container.innerHTML = finalNotesList.map(b => '<div style="margin-bottom:8px; padding-left:4px;">' + b + '</div>').join('');
+                    container.scrollTop = container.scrollHeight;
+                }
+
                 function iniciarGrabacion() {
-                    fullTranscript = '';
-                    document.getElementById('live_transcription_display').innerText = 'Escuchando...';
+                    finalNotesList = [];
+                    seenPhrases.clear();
+                    document.getElementById('live_structured_notes').innerHTML = '<i style="color:#6d28d9;">🎤 Escuchando atentamente y estructurando apuntes en vivo...</i>';
                     if (recognition) {
                         try { recognition.start(); } catch(e) {}
                     }
@@ -501,80 +519,43 @@ with pestañas_principales[0]:
                         document.getElementById('status_text').innerHTML = '⏹️ Grabación finalizada';
                     }
                 }
+
+                function copiarApuntes() {
+                    const cleanText = finalNotesList.map(n => n.replace(/<[^>]*>?/gm, '')).join('\n');
+                    navigator.clipboard.writeText(cleanText);
+                    alert("¡Apuntes copiados al portapapeles!");
+                }
                 </script>
                 """
-                components.html(html_live_suite, height=210)
+                components.html(html_live_suite, height=360)
 
-                # --- PROCESADOR Y REDACTOR DE APUNTES CON GEMINI ---
-                texto_transcrito_input = st.text_area(
-                    "Pega aquí o revisa el contenido de la clase transcrito para generar y estructurar los apuntes finales:",
+                # --- REGISTRO DIRECTO Y PERMANENTE EN EL CUADERNO ---
+                st.markdown("##### 💾 Guardar Sesión de Clase")
+                texto_final_clase = st.text_area(
+                    "Pega aquí los apuntes de la clase (o usa 'Copiar' arriba) para archivarlos de forma permanente:",
                     value=st.session_state[session_key_borrador],
-                    placeholder="El texto de la clase se organizará aquí con títulos, viñetas, conceptos clave y acuerdos...",
-                    height=200,
+                    placeholder="• Concepto 1: Definición...\n• Concepto 2: Explicación...",
+                    height=160,
                     key=f"area_txt_live_{nombre_mat}"
                 )
 
-                col_btn_gen1, col_btn_gen2 = st.columns([2, 1])
-                with col_btn_gen1:
-                    if st.button("✨ Generar y Organizar Apuntes Estructurados con Gemini", key=f"btn_gen_notes_{nombre_mat}"):
-                        if not texto_transcrito_input.strip():
-                            st.warning("No hay texto para estructurar. Graba o escribe el contenido de la clase.")
-                        else:
-                            client = obtener_cliente_ia()
-                            if not client:
-                                st.error("⚠️ GEMINI_API_KEY no configurada.")
-                            else:
-                                with st.spinner("🤖 Gemini está redactando y organizando los apuntes estructurados de la clase..."):
-                                    prompt_struct = f"""
-                                    Eres la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
-                                    Título de la sesión: {nom_sesion_live if nom_sesion_live.strip() else 'Clase en Vivo'}.
-
-                                    TEXTO O TRANSCRIPCIÓN DE LA CLASE:
-                                    \"\"\"
-                                    {texto_transcrito_input}
-                                    \"\"\"
-
-                                    Genera apuntes universitarios completos, ordenados y de alto nivel con la siguiente estructura:
-                                    # 📌 Resumen Ejecutivo de la Clase
-                                    ## 🎯 Objetivos y Temas Principales
-                                    ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas claras, definiciones y explicaciones)
-                                    ## 💡 Ejemplos Prácticos y Casos Mencionados
-                                    ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
-                                    """
-                                    try:
-                                        try:
-                                            resp = client.models.generate_content(
-                                                model="gemini-2.5-flash",
-                                                contents=prompt_struct
-                                            )
-                                        except Exception:
-                                            resp = client.models.generate_content(
-                                                model="gemini-1.5-flash",
-                                                contents=prompt_struct
-                                            )
-                                        
-                                        st.session_state[session_key_borrador] = resp.text
-                                        st.success("✅ ¡Apuntes generados y estructurados con éxito!")
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"Error con Gemini: {e}")
-
-                with col_btn_gen2:
-                    if st.button("💾 Guardar Clase en Cuaderno Permanente", key=f"btn_save_perm_{nombre_mat}"):
-                        if not texto_transcrito_input.strip():
-                            st.warning("El apunte está vacío.")
+                col_sv1, col_sv2 = st.columns([2, 1])
+                with col_sv1:
+                    if st.button("💾 Archivar Clase en Cuaderno Permanente", key=f"btn_save_perm_{nombre_mat}"):
+                        if not texto_final_clase.strip():
+                            st.warning("Pega o escribe los apuntes antes de guardar.")
                         else:
                             titulo_final = nom_sesion_live.strip() if nom_sesion_live.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"
                             info_mat["clases"].append({
                                 "id": f"clase_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                                 "titulo": titulo_final,
                                 "fecha": datetime.now(tz_cl).strftime("%d/%m/%Y %H:%M"),
-                                "contenido": texto_transcrito_input,
+                                "contenido": texto_final_clase,
                                 "chat": []
                             })
                             guardar_estado(db)
                             st.session_state[session_key_borrador] = ""
-                            st.success("¡Clase guardada exitosamente en tu cuaderno!")
+                            st.success("¡Clase guardada exitosamente en tu cuaderno permanente!")
                             st.rerun()
 
                 st.markdown("---")
@@ -584,7 +565,7 @@ with pestañas_principales[0]:
                 clases_guardadas = info_mat.get("clases", [])
                 
                 if not clases_guardadas:
-                    st.info("Aún no has archivado clases en esta materia.")
+                    st.info("Aún no has archivado clases en esta materia. Inicia una grabación arriba.")
                 else:
                     for idx_c, clase in enumerate(reversed(clases_guardadas)):
                         idx_real = len(clases_guardadas) - 1 - idx_c
@@ -632,7 +613,7 @@ with pestañas_principales[0]:
                                             """
                                             try:
                                                 resp_chat = client.models.generate_content(
-                                                    model="gemini-2.5-flash",
+                                                    model=MODELO_GEMINI,
                                                     contents=p_chat
                                                 )
                                                 if "chat" not in clases_guardadas[idx_real]:
