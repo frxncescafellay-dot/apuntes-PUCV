@@ -72,6 +72,7 @@ html, body, [class*="css"], .stApp {
     color: #ffffff !important;
 }
 
+/* BARRA LATERAL CON EL MORADO EXACTO DE SKILLPATH */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #6214c7 0%, #520eb0 100%) !important;
     border-right: 1.5px solid #450c96 !important;
@@ -104,6 +105,7 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] div[role="region"
     background-color: transparent !important;
 }
 
+/* DESPLEGABLES DEL ÁREA CENTRAL */
 div[data-testid="stExpander"] {
     background-color: #ffffff !important;
     border: 1.5px solid #c4b5fd !important;
@@ -132,6 +134,7 @@ div[data-testid="stExpander"] div[role="region"] {
     padding: 18px !important;
 }
 
+/* Cuadros de entrada en Sidebar */
 section[data-testid="stSidebar"] input[type="text"], 
 section[data-testid="stSidebar"] input[type="password"] {
     background-color: #ede9fe !important;
@@ -146,6 +149,7 @@ section[data-testid="stSidebar"] input[type="text"]:focus {
     box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3) !important;
 }
 
+/* Selector desplegable en Sidebar (Selectbox) */
 section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
     background-color: #ede9fe !important;
     border: 1.5px solid #c4b5fd !important;
@@ -161,6 +165,7 @@ section[data-testid="stSidebar"] div[data-baseweb="select"] svg {
     color: #2e1065 !important;
 }
 
+/* Botones en Sidebar */
 section[data-testid="stSidebar"] .stButton>button {
     background: #ede9fe !important;
     color: #4c1d95 !important;
@@ -180,6 +185,7 @@ section[data-testid="stSidebar"] .stButton>button p {
     font-weight: 800 !important;
 }
 
+/* Banner Dashboard y Tarjetas */
 .welcome-card {
     background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
     color: white;
@@ -270,10 +276,40 @@ button[data-baseweb="tab"][aria-selected="true"] {
     color: #6214c7 !important;
     border-bottom: 3.5px solid #6214c7 !important;
 }
+
+/* QUITAR FONDO NEGRO DE CARGADORES Y AUDIOS (LAVANDA PASTEL) */
+iframe[title*="audio_recorder"],
+div[data-testid="stFileUploader"],
+div[data-testid="stFileUploader"] section {
+    background-color: #ede9fe !important;
+    border: 1.5px dashed #8b5cf6 !important;
+    border-radius: 12px !important;
+}
+
+div[data-testid="stFileUploader"] section * {
+    color: #3b0764 !important;
+}
+
+div[data-testid="stFileUploader"] button {
+    background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+}
+div[data-testid="stFileUploader"] button p {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+div[data-baseweb="popover"],
+div[data-baseweb="popover"] * {
+    background-color: #ede9fe !important;
+    color: #2e1065 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# --- GESTOR DE BASE DE DATOS Y MIGRACION ---
+# --- GESTOR DE PERSISTENCIA ---
 def cargar_estado():
     if not os.path.exists(FILE_DB):
         data_inicial = {
@@ -317,7 +353,7 @@ def guardar_estado(data):
 
 db = cargar_estado()
 
-# --- BARRA LATERAL: PERFIL ---
+# --- BARRA LATERAL: PERFIL DE USUARIO ---
 st.sidebar.markdown("### 🎓 Mi Perfil Académico")
 perfil = db.get("perfil", {})
 avatar_path = perfil.get("avatar", "")
@@ -375,7 +411,7 @@ with st.sidebar.expander("➕ Crear Nuevo Módulo"):
             st.success("Módulo creado con éxito.")
             st.rerun()
 
-# --- HEADER BRAND ---
+# --- HEADER BRAND SKILLPATH ---
 tz_cl = pytz.timezone("America/Santiago")
 hora_actual = datetime.now(tz_cl).strftime("%d/%m/%Y | %H:%M:%S")
 
@@ -450,7 +486,7 @@ with pestañas_principales[0]:
                 st.markdown(f"### 📖 {nombre_mat}")
                 st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
                 
-                # --- ÁREA DE GRABACIÓN Y APUNTES EN VIVO (LIVE STREAMING SLICES) ---
+                # --- ÁREA DE GRABACIÓN Y APUNTES EN VIVO CONTINUOS ---
                 st.markdown("""
                 <div class='app-card'>
                     <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo & Apuntes Continuos con Autocorrección</h4>
@@ -475,7 +511,7 @@ with pestañas_principales[0]:
 
                 c_audio_rec, c_audio_up = st.columns([1, 2])
                 with c_audio_rec:
-                    st.markdown("**1. Capturar Voz en Vivo (Micrófono):**")
+                    st.markdown("<p style='color:#3b0764; font-weight:700;'>1. Capturar Voz en Vivo (Micrófono):</p>", unsafe_allow_html=True)
                     live_audio_chunk = audio_recorder(
                         text="Clic para Hablar / Pausar",
                         recording_color="#e11d48",
@@ -484,7 +520,7 @@ with pestañas_principales[0]:
                         key=f"rec_stream_{modulo_actual}_{nombre_mat}"
                     )
                 with c_audio_up:
-                    st.markdown("**2. O Cargar Audio de la Clase:**")
+                    st.markdown("<p style='color:#3b0764; font-weight:700;'>2. O Cargar Audio de la Clase:</p>", unsafe_allow_html=True)
                     uploaded_chunk = st.file_uploader("Subir archivo (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"up_stream_{modulo_actual}_{nombre_mat}")
 
                 audio_chunk_to_process = None
