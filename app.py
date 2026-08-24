@@ -290,12 +290,12 @@ def cargar_estado():
         data_inicial = {
             "perfil": {
                 "nombre": "Francesca Fellay",
-                "universidad": "Universidad de Playa Ancha",
+                "universidad": "Pontificia Universidad Católica de Valparaíso",
                 "ubicacion": "Valparaíso, Chile",
                 "avatar": ""
             },
             "modulos": {
-                "6to semestre TSL": {
+                "6to Semestre TSL": {
                     "carpetas": {}
                 }
             },
