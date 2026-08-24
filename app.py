@@ -307,14 +307,6 @@ div[data-baseweb="popover"] * {
     color: #2e1065 !important;
 }
 
-/* REMOVER FONDO NEGRO DEL BOTÓN DEL MICRÓFONO (audio_recorder) */
-iframe[title*="audio_recorder"] {
-    background-color: #ede9fe !important;
-    border: 1.5px solid #c4b5fd !important;
-    border-radius: 10px !important;
-    padding: 4px !important;
-}
-
 /* ETIQUETAS DE CARGADOR DE ARCHIVOS Y TEXTOS ASOCIADOS EN MORADO */
 div[data-testid="stFileUploader"] label,
 div[data-testid="stFileUploader"] label p,
@@ -324,10 +316,27 @@ div[data-testid="stFileUploader"] div {
     color: #3b0764 !important;
     font-weight: 750 !important;
 }
+
+/* ESTILIZACIÓN DEL BOTÓN DE MICRÓFONO EN VIVO (CARD PÍLDORA SKILLPATH) */
+iframe[title*="audio_recorder"] {
+    background: #ede9fe !important;
+    border: 2px solid #a78bfa !important;
+    border-radius: 14px !important;
+    padding: 6px 14px !important;
+    height: 58px !important;
+    width: 100% !important;
+    max-width: 260px !important;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.15) !important;
+    filter: invert(1) hue-rotate(180deg) brightness(1.2) contrast(1.1) !important;
+}
+
+div[data-testid="stFileUploader"] {
+    margin-top: 0px !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# --- GESTOR DE PERSISTENCIA ---
+# --- GESTOR DE PERSISTENCIA CON MIGRACIÓN AUTOMÁTICA ---
 def cargar_estado():
     if not os.path.exists(FILE_DB):
         data_inicial = {
@@ -447,7 +456,7 @@ st.markdown(f"""
 pestañas_principales = st.tabs(["📁 Mis Carpetas & Clases", "🎙️ Grabaciones Originales"])
 
 # ==========================================
-# 1. MIS CARPETAS & CLASES
+# 1. MIS CARPETAS & CLASES (CUADERNOS)
 # ==========================================
 with pestañas_principales[0]:
     carpetas_modulo = db["modulos"][modulo_actual]["carpetas"]
@@ -538,6 +547,7 @@ with pestañas_principales[0]:
                         key=f"rec_stream_{modulo_actual}_{nombre_mat}"
                     )
                 with c_audio_up:
+                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>2. O Cargar Audio de la Clase:</p>", unsafe_allow_html=True)
                     uploaded_chunk = st.file_uploader("Subir archivo (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"up_stream_{modulo_actual}_{nombre_mat}")
 
                 audio_chunk_to_process = None
