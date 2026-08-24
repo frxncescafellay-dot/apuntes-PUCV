@@ -25,9 +25,6 @@ FILE_DB = os.path.join(DIR_BASE, "cuadernos_db.json")
 for d in [DIR_BASE, DIR_AUDIO_RAW, DIR_PERFILES]:
     os.makedirs(d, exist_ok=True)
 
-# MODELOS OFICIALES Y ACTIVOS DE GROQ
-MODELO_CHAT = "llama-3.3-70b-versatile"
-MODELO_CHAT_BACKUP = "llama-3.1-8b-instant"
 MODELO_WHISPER = "whisper-large-v3"
 
 # --- OBTENCION SEGURA DE API KEY GROQ ---
@@ -48,26 +45,37 @@ def obtener_cliente_ia():
         return None
 
 def ejecutar_chat_groq(client, prompt_sistema, prompt_usuario):
+    # Detección dinámica del mejor modelo de texto disponible en tu cuenta
+    modelos_preferidos = [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-70b-versatile",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it"
+    ]
+    
+    # Obtener modelos activos directamente desde la API
     try:
-        resp = client.chat.completions.create(
-            model=MODELO_CHAT,
-            messages=[
-                {"role": "system", "content": prompt_sistema},
-                {"role": "user", "content": prompt_usuario}
-            ],
-            temperature=0.3
-        )
-        return resp.choices[0].message.content
+        lista_api = [m.id for m in client.models.list().data if "whisper" not in m.id]
     except Exception:
-        resp = client.chat.completions.create(
-            model=MODELO_CHAT_BACKUP,
-            messages=[
-                {"role": "system", "content": prompt_sistema},
-                {"role": "user", "content": prompt_usuario}
-            ],
-            temperature=0.3
-        )
-        return resp.choices[0].message.content
+        lista_api = []
+
+    candidatos = [m for m in modelos_preferidos if m in lista_api] + lista_api + modelos_preferidos
+
+    for model_id in candidatos:
+        try:
+            resp = client.chat.completions.create(
+                model=model_id,
+                messages=[
+                    {"role": "system", "content": prompt_sistema},
+                    {"role": "user", "content": prompt_usuario}
+                ],
+                temperature=0.3
+            )
+            return resp.choices[0].message.content
+        except Exception:
+            continue
+            
+    raise Exception("No se encontró ningún modelo de texto compatible activo en Groq.")
 
 # --- ESTILOS VISUALES SKILLPATH (LAVANDA & MORADO) ---
 st.markdown("""
@@ -376,13 +384,13 @@ with pestañas_principales[0]:
     st.markdown(f"""
     <div class='welcome-card'>
         <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
-        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Motor activo: <b>Groq (Whisper Large + Llama 3.3 70B)</b>.</p>
+        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Motor activo: <b>Groq Ultra-Speed</b>.</p>
     </div>
     <div class='stats-grid'>
         <div class='stat-card-1'><div class='stat-value'>{total_carpetas}</div><div class='stat-label'>Materias / Carpetas</div></div>
         <div class='stat-card-2'><div class='stat-value'>{total_clases}</div><div class='stat-label'>Clases Procesadas</div></div>
         <div class='stat-card-3'><div class='stat-value'>{len(db['grabaciones'])}</div><div class='stat-label'>Audios Grabados</div></div>
-        <div class='stat-card-4'><div class='stat-value'>⚡ Groq IA</div><div class='stat-label'>Llama 3.3 70B</div></div>
+        <div class='stat-card-4'><div class='stat-value'>⚡ Groq IA</div><div class='stat-label'>Whisper + Llama</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -436,7 +444,7 @@ with pestañas_principales[0]:
                 <div class='app-card'>
                     <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo: Transcripción & Estructuración Instantánea</h4>
                     <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
-                        Graba con los botones nativos del micrófono. <b>Whisper Large</b> transcribirá la voz y <b>Llama 3.3 70B</b> redactará y organizará la clase en viñetas, conceptos clave y explicaciones en tiempo real.
+                        Graba con los botones nativos del micrófono. <b>Whisper Large</b> transcribirá la voz y <b>Groq</b> redactará y organizará la clase en viñetas, conceptos clave y explicaciones en tiempo real.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -463,7 +471,7 @@ with pestañas_principales[0]:
                     audio_bytes_capturados = uploaded_live_in.getvalue()
                     ext_capturado = uploaded_live_in.name.split(".")[-1].lower()
 
-                # PROCESAMIENTO REACTIVO EN TIEMPO REAL CON GROQ (WHISPER + LLAMA 3.3 70B)
+                # PROCESAMIENTO REACTIVO EN TIEMPO REAL CON GROQ
                 if audio_bytes_capturados is not None:
                     audio_sig = f"{len(audio_bytes_capturados)}_{hash(audio_bytes_capturados[:64])}"
                     
@@ -472,7 +480,7 @@ with pestañas_principales[0]:
                         if not client:
                             st.error("⚠️ Clave GROQ_API_KEY no configurada en Secrets de Streamlit.")
                         else:
-                            with st.spinner("⚡ Transcribiendo con Whisper y estructurando apuntes con Llama 3.3 70B..."):
+                            with st.spinner("⚡ Transcribiendo con Whisper y estructurando apuntes en vivo..."):
                                 try:
                                     # 1. Transcripción con Whisper Large V3
                                     audio_buffer = io.BytesIO(audio_bytes_capturados)
@@ -485,7 +493,7 @@ with pestañas_principales[0]:
                                     )
                                     texto_transcrito = transcripcion.text
 
-                                    # 2. Estructuración con Llama 3.3 70B
+                                    # 2. Estructuración con Groq
                                     prompt_sys = f"Eres la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'."
                                     prompt_user = f"""
                                     Título de la clase: {nom_sesion_live if nom_sesion_live.strip() else 'Clase Universitaria'}.
