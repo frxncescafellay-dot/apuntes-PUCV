@@ -6,7 +6,7 @@ import pytz
 import pandas as pd
 import streamlit as st
 from PIL import Image
-from openai import OpenAI
+from groq import Groq
 
 # --- CONFIGURACION DE PAGINA ---
 st.set_page_config(
@@ -25,26 +25,27 @@ FILE_DB = os.path.join(DIR_BASE, "cuadernos_db.json")
 for d in [DIR_BASE, DIR_AUDIO_RAW, DIR_PERFILES]:
     os.makedirs(d, exist_ok=True)
 
-MODELO_CHAT = "gpt-4o-mini"
+MODELO_CHAT = "llama-3.3-70b-versatile"
+MODELO_WHISPER = "whisper-large-v3"
 
-# --- OBTENCION SEGURA DE API KEY OPENAI ---
+# --- OBTENCION SEGURA DE API KEY GROQ ---
 def obtener_api_key():
-    if "OPENAI_API_KEY" in st.secrets:
-        return st.secrets["OPENAI_API_KEY"]
-    return os.environ.get("OPENAI_API_KEY", "")
+    if "GROQ_API_KEY" in st.secrets:
+        return st.secrets["GROQ_API_KEY"]
+    return os.environ.get("GROQ_API_KEY", "")
 
-API_KEY_OPENAI = obtener_api_key()
+API_KEY_GROQ = obtener_api_key()
 
 def obtener_cliente_ia():
-    if not API_KEY_OPENAI:
+    if not API_KEY_GROQ:
         return None
     try:
-        return OpenAI(api_key=API_KEY_OPENAI)
+        return Groq(api_key=API_KEY_GROQ)
     except Exception as e:
-        st.error(f"Error al conectar con OpenAI: {e}")
+        st.error(f"Error al conectar con Groq: {e}")
         return None
 
-# --- ESTILOS VISUALES SKILLPATH ---
+# --- ESTILOS VISUALES SKILLPATH (LAVANDA & MORADO) ---
 st.markdown("""
 <style>
 html, body, [class*="css"], .stApp { 
@@ -351,13 +352,13 @@ with pestañas_principales[0]:
     st.markdown(f"""
     <div class='welcome-card'>
         <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
-        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Motor activo: <b>GPT-4o mini & Whisper</b>.</p>
+        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Motor activo: <b>Groq (Whisper + Llama 3.3 70B)</b>.</p>
     </div>
     <div class='stats-grid'>
         <div class='stat-card-1'><div class='stat-value'>{total_carpetas}</div><div class='stat-label'>Materias / Carpetas</div></div>
         <div class='stat-card-2'><div class='stat-value'>{total_clases}</div><div class='stat-label'>Clases Procesadas</div></div>
         <div class='stat-card-3'><div class='stat-value'>{len(db['grabaciones'])}</div><div class='stat-label'>Audios Grabados</div></div>
-        <div class='stat-card-4'><div class='stat-value'>⚡ OpenAI</div><div class='stat-label'>Whisper + GPT-4o</div></div>
+        <div class='stat-card-4'><div class='stat-value'>⚡ Groq IA</div><div class='stat-label'>Alta Velocidad Gratuita</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -409,9 +410,9 @@ with pestañas_principales[0]:
 
                 st.markdown("""
                 <div class='app-card'>
-                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo: Transcripción & Estructuración con OpenAI</h4>
+                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo: Transcripción & Estructuración Instantánea</h4>
                     <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
-                        Graba con los botones nativos del micrófono. Al detener la intervención, <b>Whisper</b> transcribirá el audio y <b>GPT-4o</b> organizará la clase en viñetas, conceptos clave y explicaciones en tiempo real.
+                        Graba con los botones nativos del micrófono. <b>Whisper Large</b> transcribirá la voz y <b>Llama 3.3 70B</b> redactará y organizará la clase en viñetas, conceptos clave y explicaciones en tiempo real.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -438,29 +439,29 @@ with pestañas_principales[0]:
                     audio_bytes_capturados = uploaded_live_in.getvalue()
                     ext_capturado = uploaded_live_in.name.split(".")[-1].lower()
 
-                # PROCESAMIENTO REACTIVO EN TIEMPO REAL CON OPENAI (WHISPER + GPT-4O)
+                # PROCESAMIENTO REACTIVO EN TIEMPO REAL CON GROQ (WHISPER + LLAMA 3.3)
                 if audio_bytes_capturados is not None:
                     audio_sig = f"{len(audio_bytes_capturados)}_{hash(audio_bytes_capturados[:64])}"
                     
                     if audio_sig != st.session_state[session_key_last_proc]:
                         client = obtener_cliente_ia()
                         if not client:
-                            st.error("⚠️ Clave OPENAI_API_KEY no configurada en Secrets de Streamlit.")
+                            st.error("⚠️ Clave GROQ_API_KEY no configurada en Secrets de Streamlit.")
                         else:
-                            with st.spinner("⚡ Transcribiendo con Whisper y estructurando apuntes con GPT-4o..."):
+                            with st.spinner("⚡ Transcribiendo con Whisper y estructurando apuntes con Llama 3.3 70B..."):
                                 try:
-                                    # 1. Transcripción con Whisper
+                                    # 1. Transcripción con Whisper Large V3
                                     audio_buffer = io.BytesIO(audio_bytes_capturados)
                                     audio_buffer.name = f"audio_temp.{ext_capturado}"
                                     
                                     transcripcion = client.audio.transcriptions.create(
-                                        model="whisper-1",
+                                        model=MODELO_WHISPER,
                                         file=audio_buffer,
                                         language="es"
                                     )
                                     texto_transcrito = transcripcion.text
 
-                                    # 2. Estructuración con GPT-4o mini
+                                    # 2. Estructuración con Llama 3.3 70B Versatile
                                     prompt_live = f"""
                                     Eres la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
                                     Título de la clase: {nom_sesion_live if nom_sesion_live.strip() else 'Clase Universitaria'}.
@@ -510,7 +511,7 @@ with pestañas_principales[0]:
                                     guardar_estado(db)
                                     st.success("✅ ¡Apuntes redactados y organizados con éxito!")
                                 except Exception as e:
-                                    st.error(f"Error procesando con OpenAI: {e}")
+                                    st.error(f"Error procesando con Groq: {e}")
 
                 # --- CUADRO DE TEXTO: ORGANIZACIÓN DE APUNTES EN VIVO ---
                 st.markdown("##### 📝 Cuadro de Apuntes Estructurados en Tiempo Real:")
