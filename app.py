@@ -106,6 +106,35 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] div[role="region"
     background-color: transparent !important;
 }
 
+/* DESPLEGABLES / EXPANDERS DEL ÁREA CENTRAL (MORADO VIBRANTE #7c24ec / #6d28d9) */
+div[data-testid="stExpander"] {
+    background-color: #ffffff !important;
+    border: 1.5px solid #c4b5fd !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 14px rgba(109, 36, 236, 0.1) !important;
+    margin-bottom: 16px !important;
+}
+div[data-testid="stExpander"] summary {
+    background: linear-gradient(135deg, #7c24ec 0%, #6214c7 100%) !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+    font-weight: 750 !important;
+    padding: 12px 18px !important;
+}
+div[data-testid="stExpander"] summary * {
+    color: #ffffff !important;
+    font-weight: 750 !important;
+}
+div[data-testid="stExpander"] summary svg {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+}
+div[data-testid="stExpander"] div[role="region"] {
+    background-color: #ffffff !important;
+    color: #1e1b4b !important;
+    padding: 18px !important;
+}
+
 /* Cuadros de entrada en Sidebar */
 section[data-testid="stSidebar"] input[type="text"], 
 section[data-testid="stSidebar"] input[type="password"] {
@@ -121,7 +150,7 @@ section[data-testid="stSidebar"] input[type="text"]:focus {
     box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3) !important;
 }
 
-/* Selector desplegable en Sidebar (Selectbox) - Quitar negro */
+/* Selector desplegable en Sidebar (Selectbox) */
 section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
     background-color: #ede9fe !important;
     border: 1.5px solid #c4b5fd !important;
@@ -130,14 +159,14 @@ section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
 section[data-testid="stSidebar"] div[data-baseweb="select"] * {
     background-color: transparent !important;
     color: #2e1065 !important;
-    font-weight: 700 !important;
+    font-weight: 750 !important;
 }
 section[data-testid="stSidebar"] div[data-baseweb="select"] svg {
     fill: #2e1065 !important;
     color: #2e1065 !important;
 }
 
-/* Botones en Sidebar (Tono Lavanda Luminoso con texto Violeta Profundo) */
+/* Botones en Sidebar */
 section[data-testid="stSidebar"] .stButton>button {
     background: #ede9fe !important;
     color: #4c1d95 !important;
