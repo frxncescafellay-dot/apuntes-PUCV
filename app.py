@@ -12,13 +12,13 @@ from google.genai import types
 
 # --- CONFIGURACION DE PAGINA ---
 st.set_page_config(
-    page_title="SkillPath — Cuadernos & Grabación en Vivo IA",
+    page_title="SkillPath — Apuntes Inteligentes en Vivo",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- RUTAS DE ALMACENAMIENTO PERSISTENTE ---
+# --- RUTAS PERSISTENTES ---
 DIR_BASE = "cuadernos_data"
 DIR_AUDIO_RAW = os.path.join(DIR_BASE, "grabaciones_originales")
 DIR_PERFILES = os.path.join(DIR_BASE, "perfil_usuario")
@@ -42,7 +42,7 @@ def obtener_cliente_ia():
         return None
     return genai.Client(api_key=API_KEY_GEMINI)
 
-# --- ESTILOS CSS ---
+# --- ESTILOS VISUALES SKILLPATH ---
 st.markdown("""
 <style>
 html, body, [class*="css"], .stApp { 
@@ -51,7 +51,6 @@ html, body, [class*="css"], .stApp {
     color: #1e1b4b;
 }
 
-/* Header Brand */
 .brand-navbar {
     background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%);
     padding: 16px 24px;
@@ -73,7 +72,6 @@ html, body, [class*="css"], .stApp {
     color: #ffffff !important;
 }
 
-/* BARRA LATERAL SKILLPATH */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #6214c7 0%, #520eb0 100%) !important;
     border-right: 1.5px solid #450c96 !important;
@@ -89,7 +87,6 @@ section[data-testid="stSidebar"] h4 {
     font-weight: 800 !important;
 }
 
-/* Desplegables en Sidebar */
 section[data-testid="stSidebar"] div[data-testid="stExpander"] {
     background-color: rgba(255, 255, 255, 0.12) !important;
     border: 1px solid rgba(255, 255, 255, 0.25) !important;
@@ -107,7 +104,6 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] div[role="region"
     background-color: transparent !important;
 }
 
-/* DESPLEGABLES DEL ÁREA CENTRAL */
 div[data-testid="stExpander"] {
     background-color: #ffffff !important;
     border: 1.5px solid #c4b5fd !important;
@@ -136,7 +132,6 @@ div[data-testid="stExpander"] div[role="region"] {
     padding: 18px !important;
 }
 
-/* Inputs en Sidebar */
 section[data-testid="stSidebar"] input[type="text"], 
 section[data-testid="stSidebar"] input[type="password"] {
     background-color: #ede9fe !important;
@@ -151,7 +146,6 @@ section[data-testid="stSidebar"] input[type="text"]:focus {
     box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3) !important;
 }
 
-/* Selector en Sidebar */
 section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
     background-color: #ede9fe !important;
     border: 1.5px solid #c4b5fd !important;
@@ -167,7 +161,6 @@ section[data-testid="stSidebar"] div[data-baseweb="select"] svg {
     color: #2e1065 !important;
 }
 
-/* Botones en Sidebar */
 section[data-testid="stSidebar"] .stButton>button {
     background: #ede9fe !important;
     color: #4c1d95 !important;
@@ -187,7 +180,6 @@ section[data-testid="stSidebar"] .stButton>button p {
     font-weight: 800 !important;
 }
 
-/* Banner Dashboard y Tarjetas */
 .welcome-card {
     background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
     color: white;
@@ -202,10 +194,10 @@ section[data-testid="stSidebar"] .stButton>button p {
     gap: 16px;
     margin-bottom: 24px;
 }
-.stat-card-1 { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(219, 39, 119, 0.25); }
-.stat-card-2 { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(109, 40, 217, 0.25); }
-.stat-card-3 { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(29, 78, 216, 0.25); }
-.stat-card-4 { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 14px rgba(8, 145, 178, 0.25); }
+.stat-card-1 { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: white; border-radius: 14px; padding: 18px; }
+.stat-card-2 { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; border-radius: 14px; padding: 18px; }
+.stat-card-3 { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border-radius: 14px; padding: 18px; }
+.stat-card-4 { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; border-radius: 14px; padding: 18px; }
 .stat-value { font-size: 1.8rem; font-weight: 800; margin: 0; line-height: 1.2; }
 .stat-label { font-size: 0.85rem; font-weight: 600; opacity: 0.9; }
 
@@ -218,7 +210,6 @@ section[data-testid="stSidebar"] .stButton>button p {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
-/* Botones Principales */
 .stButton>button {
     background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%) !important;
     color: #ffffff !important;
@@ -282,7 +273,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
 </style>
 """, unsafe_allow_html=True)
 
-# --- GESTOR DE PERSISTENCIA ---
+# --- GESTOR DE BASE DE DATOS Y MIGRACION ---
 def cargar_estado():
     if not os.path.exists(FILE_DB):
         data_inicial = {
@@ -326,7 +317,7 @@ def guardar_estado(data):
 
 db = cargar_estado()
 
-# --- BARRA LATERAL: PERFIL DE USUARIO ---
+# --- BARRA LATERAL: PERFIL ---
 st.sidebar.markdown("### 🎓 Mi Perfil Académico")
 perfil = db.get("perfil", {})
 avatar_path = perfil.get("avatar", "")
@@ -384,7 +375,7 @@ with st.sidebar.expander("➕ Crear Nuevo Módulo"):
             st.success("Módulo creado con éxito.")
             st.rerun()
 
-# --- HEADER BRAND SKILLPATH ---
+# --- HEADER BRAND ---
 tz_cl = pytz.timezone("America/Santiago")
 hora_actual = datetime.now(tz_cl).strftime("%d/%m/%Y | %H:%M:%S")
 
@@ -402,7 +393,7 @@ st.markdown(f"""
 pestañas_principales = st.tabs(["📁 Mis Carpetas & Clases", "🎙️ Grabaciones Originales"])
 
 # ==========================================
-# 1. MIS CARPETAS & CLASES (CUADERNOS)
+# 1. MIS CARPETAS & CLASES
 # ==========================================
 with pestañas_principales[0]:
     carpetas_modulo = db["modulos"][modulo_actual]["carpetas"]
@@ -459,133 +450,166 @@ with pestañas_principales[0]:
                 st.markdown(f"### 📖 {nombre_mat}")
                 st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
                 
+                # --- ÁREA DE GRABACIÓN Y APUNTES EN VIVO (LIVE STREAMING SLICES) ---
                 st.markdown("""
                 <div class='app-card'>
-                    <h4 style='margin:0 0 10px 0; color:#5b21b6;'>🎙️ Grabación de Clase & Apuntes Automáticos con IA</h4>
-                    <p style='color:#64748b; font-size:0.9rem; margin-bottom:14px;'>Haz clic en el micrófono para grabar la clase. Al terminar, Gemini 3.6 Flash generará tus apuntes estructurados y corregidos al instante.</p>
+                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Grabación en Vivo & Apuntes Continuos con Autocorrección</h4>
+                    <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
+                        Pulsa el micrófono para grabar un segmento de la clase. Cada vez que captures voz, <b>Gemini 3.6 Flash</b> integrará lo escuchado al borrador en tiempo real, corrigiendo lapsus o términos y organizando los conceptos sin perder el hilo.
+                    </p>
                 </div>
                 """, unsafe_allow_html=True)
 
-                nom_sesion = st.text_input("Tema / Título de la sesión:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"title_{nombre_mat}")
+                session_key_borrador = f"live_notes_draft_{modulo_actual}_{nombre_mat}"
+                if session_key_borrador not in st.session_state:
+                    st.session_state[session_key_borrador] = ""
 
-                col_rec, col_file = st.columns([1, 2])
-                with col_rec:
-                    st.markdown("**🎙️ Grabar con Micrófono:**")
-                    audio_mic_bytes = audio_recorder(
-                        text="Clic para Grabar",
+                col_live_top1, col_live_top2 = st.columns([2, 1])
+                with col_live_top1:
+                    nom_sesion_live = st.text_input("Tema / Título de la clase:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"t_live_input_{nombre_mat}")
+                with col_live_top2:
+                    st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+                    if st.button("🔄 Reiniciar Borrador en Vivo", key=f"btn_reset_{nombre_mat}"):
+                        st.session_state[session_key_borrador] = ""
+                        st.rerun()
+
+                c_audio_rec, c_audio_up = st.columns([1, 2])
+                with c_audio_rec:
+                    st.markdown("**1. Capturar Voz en Vivo (Micrófono):**")
+                    live_audio_chunk = audio_recorder(
+                        text="Clic para Hablar / Pausar",
                         recording_color="#e11d48",
                         neutral_color="#6214c7",
                         icon_size="2x",
-                        key=f"audio_mic_{modulo_actual}_{nombre_mat}"
+                        key=f"rec_stream_{modulo_actual}_{nombre_mat}"
                     )
-                with col_file:
-                    st.markdown("**📁 O Subir Archivo de Audio:**")
-                    archivo_subido = st.file_uploader("Formatos (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"up_{modulo_actual}_{nombre_mat}")
+                with c_audio_up:
+                    st.markdown("**2. O Cargar Audio de la Clase:**")
+                    uploaded_chunk = st.file_uploader("Subir archivo (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"up_stream_{modulo_actual}_{nombre_mat}")
 
-                # Audio final a procesar
-                audio_bytes_final = None
-                mime_final = "audio/wav"
-                ext_final = "wav"
+                audio_chunk_to_process = None
+                mime_chunk = "audio/wav"
+                ext_chunk = "wav"
 
-                if audio_mic_bytes is not None:
-                    audio_bytes_final = audio_mic_bytes
-                    mime_final = "audio/wav"
-                    ext_final = "wav"
-                    st.audio(audio_bytes_final, format="audio/wav")
-                elif archivo_subido is not None:
-                    audio_bytes_final = archivo_subido.read()
-                    ext_final = archivo_subido.name.split(".")[-1].lower()
+                if live_audio_chunk is not None:
+                    audio_chunk_to_process = live_audio_chunk
+                    mime_chunk = "audio/wav"
+                    ext_chunk = "wav"
+                elif uploaded_chunk is not None:
+                    audio_chunk_to_process = uploaded_chunk.read()
+                    ext_chunk = uploaded_chunk.name.split(".")[-1].lower()
                     mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "m4a": "audio/mp4"}
-                    mime_final = mime_map.get(ext_final, "audio/wav")
-                    st.audio(audio_bytes_final, format=mime_final)
+                    mime_chunk = mime_map.get(ext_chunk, "audio/wav")
 
-                if audio_bytes_final is not None:
-                    if st.button("✨ Procesar Audio y Generar Apuntes Estructurados", key=f"btn_gen_{nombre_mat}"):
-                        client = obtener_cliente_ia()
-                        if not client:
-                            st.error("⚠️ Clave GEMINI_API_KEY no configurada en los Secrets de Streamlit.")
-                        else:
-                            titulo_final = nom_sesion.strip() if nom_sesion.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"
+                # Procesamiento incremental en caliente con Gemini
+                if audio_chunk_to_process is not None:
+                    client = obtener_cliente_ia()
+                    if client:
+                        with st.spinner("🤖 Gemini 3.6 Flash está procesando el audio en vivo, corrigiendo y actualizando tus apuntes..."):
+                            prompt_incremental = f"""
+                            Actúa como una asistente académica de excelencia para la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'.
                             
-                            # Guardar archivo físico en grabaciones
-                            nombre_archivo_audio = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_final}"
-                            ruta_audio_dest = os.path.join(DIR_AUDIO_RAW, nombre_archivo_audio)
-                            with open(ruta_audio_dest, "wb") as f_aud:
-                                f_aud.write(audio_bytes_final)
+                            BORRADOR ACTUAL DE LOS APUNTES:
+                            \"\"\"
+                            {st.session_state[session_key_borrador] if st.session_state[session_key_borrador] else 'Aún no hay apuntes previos. Inicia la estructura.'}
+                            \"\"\"
                             
-                            db["grabaciones"].append({
-                                "titulo": titulo_final,
-                                "materia": nombre_mat,
-                                "modulo": modulo_actual,
-                                "fecha": datetime.now(tz_cl).strftime("%Y-%m-%d %H:%M"),
-                                "ruta": ruta_audio_dest
-                            })
+                            INSTRUCCIONES DE ACTUALIZACIÓN EN VIVO:
+                            1. Escucha con precisión el nuevo fragmento de audio de la clase.
+                            2. Integra los nuevos conceptos, autores, metodologías o explicaciones al borrador existente.
+                            3. Si en el audio anterior hubo errores de dicción, nombres mal escritos o frases incompletas, CORRÍGELOS inmediatamente integrando el nuevo contexto sin perder el hilo.
+                            4. Mantén y enriquece siempre la estructura profesional con:
+                               # 📌 Resumen Ejecutivo de la Clase
+                               ## 🎯 Objetivos y Temas Principales
+                               ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas y definiciones claras)
+                               ## 💡 Ejemplos Prácticos y Casos Mencionados
+                               ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
+                            """
+                            try:
+                                resp_stream = client.models.generate_content(
+                                    model=MODELO_GEMINI,
+                                    contents=[
+                                        types.Part.from_bytes(data=audio_chunk_to_process, mime_type=mime_chunk),
+                                        prompt_incremental
+                                    ]
+                                )
+                                st.session_state[session_key_borrador] = resp_stream.text
 
-                            with st.spinner("🤖 Gemini 3.6 Flash está escuchando el audio, corrigiendo y redactando los apuntes estructurados..."):
-                                prompt_apuntes = f"""
-                                Eres una asistente universitaria de excelencia para la estudiante Francesca Fellay.
-                                Escucha con total precisión este audio de la clase universitaria de '{nombre_mat}'.
-                                Título de la sesión: {titulo_final}.
+                                # Guardar archivo físico en el repositorio de grabaciones
+                                n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_chunk}"
+                                r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)
+                                with open(r_dest, "wb") as f_raw:
+                                    f_raw.write(audio_chunk_to_process)
                                 
-                                Genera unos apuntes completos, organizados y profesionales con:
-                                # 📌 Resumen Ejecutivo de la Clase
-                                ## 🎯 Objetivos y Temas Principales Abordados
-                                ## 📝 Desarrollo Detallado y Conceptos Clave (viñetas, definiciones y explicaciones claras)
-                                ## 💡 Ejemplos Prácticos y Casos Mencionados
-                                ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
-                                """
-                                try:
-                                    resp = client.models.generate_content(
-                                        model=MODELO_GEMINI,
-                                        contents=[
-                                            types.Part.from_bytes(data=audio_bytes_final, mime_type=mime_final),
-                                            prompt_apuntes
-                                        ]
-                                    )
-                                    info_mat["clases"].append({
-                                        "id": f"clase_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                                        "titulo": titulo_final,
-                                        "fecha": datetime.now(tz_cl).strftime("%d/%m/%Y %H:%M"),
-                                        "contenido": resp.text,
-                                        "chat": []
-                                    })
-                                    guardar_estado(db)
-                                    st.success("¡Apuntes generados y guardados exitosamente!")
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"Error al procesar el audio con Gemini: {e}")
+                                db["grabaciones"].append({
+                                    "titulo": nom_sesion_live if nom_sesion_live.strip() else f"Grabación {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}",
+                                    "materia": nombre_mat,
+                                    "modulo": modulo_actual,
+                                    "fecha": datetime.now(tz_cl).strftime("%Y-%m-%d %H:%M"),
+                                    "ruta": r_dest
+                                })
+                                guardar_estado(db)
+                            except Exception as err:
+                                st.error(f"Error procesando el segmento de audio: {err}")
+
+                # --- VISOR Y EDITOR DE APUNTES EN VIVO ---
+                st.markdown("##### 📝 Cuaderno en Tiempo Real (Actualización Continua & Edición):")
+                texto_en_vivo_editado = st.text_area(
+                    "Los apuntes se van redactando y corrigiendo aquí automáticamente a medida que hablas (puedes editarlos a mano en cualquier momento):",
+                    value=st.session_state[session_key_borrador],
+                    height=340,
+                    key=f"live_draft_editor_{nombre_mat}"
+                )
+                st.session_state[session_key_borrador] = texto_en_vivo_editado
+
+                col_save_live1, col_save_live2 = st.columns([2, 1])
+                with col_save_live1:
+                    if st.button("💾 Finalizar y Guardar Clase en el Cuaderno Permanente", key=f"btn_save_permanent_{nombre_mat}"):
+                        if not st.session_state[session_key_borrador].strip():
+                            st.warning("El borrador está vacío. Graba un segmento de clase primero.")
+                        else:
+                            titulo_final = nom_sesion_live.strip() if nom_sesion_live.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"
+                            info_mat["clases"].append({
+                                "id": f"clase_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                                "titulo": titulo_final,
+                                "fecha": datetime.now(tz_cl).strftime("%d/%m/%Y %H:%M"),
+                                "contenido": st.session_state[session_key_borrador],
+                                "chat": []
+                            })
+                            guardar_estado(db)
+                            st.session_state[session_key_borrador] = ""
+                            st.success("¡Clase guardada exitosamente en tu cuaderno!")
+                            st.rerun()
 
                 st.markdown("---")
 
-                # Cuaderno de apuntes
-                st.markdown("#### 📚 Cuaderno de Apuntes Registrados")
+                # --- HISTORIAL DE APUNTES GUARDADOS ---
+                st.markdown("#### 📚 Clases Guardadas en esta Materia")
                 clases_guardadas = info_mat.get("clases", [])
                 
                 if not clases_guardadas:
-                    st.info("Aún no hay apuntes en esta materia. Graba con tu micrófono arriba para comenzar.")
+                    st.info("No hay clases registradas en esta materia aún.")
                 else:
                     for idx_c, clase in enumerate(reversed(clases_guardadas)):
                         idx_real = len(clases_guardadas) - 1 - idx_c
                         with st.expander(f"📝 {clase['titulo']} — ({clase['fecha']})", expanded=(idx_c == 0)):
-                            col_ed1, col_ed2 = st.columns([4, 1])
-                            with col_ed1:
-                                st.markdown("##### ✏️ Editor de Apuntes en Vivo:")
-                                nuevo_texto = st.text_area(
-                                    "Puedes editar tus apuntes en tiempo real:",
+                            c_hist_ed, c_hist_act = st.columns([4, 1])
+                            with c_hist_ed:
+                                n_val_hist = st.text_area(
+                                    "Contenido de los apuntes:",
                                     value=clase["contenido"],
-                                    height=350,
-                                    key=f"edit_area_{clase['id']}"
+                                    height=300,
+                                    key=f"hist_edit_{clase['id']}"
                                 )
-                                if st.button("💾 Guardar Cambios en los Apuntes", key=f"btn_save_{clase['id']}"):
-                                    clases_guardadas[idx_real]["contenido"] = nuevo_texto
+                                if st.button("💾 Guardar Edición", key=f"btn_save_h_{clase['id']}"):
+                                    clases_guardadas[idx_real]["contenido"] = n_val_hist
                                     guardar_estado(db)
                                     st.success("Apuntes actualizados.")
                                     st.rerun()
                             
-                            with col_ed2:
-                                st.markdown("##### ⚙️ Acciones:")
+                            with c_hist_act:
                                 st.download_button(
-                                    "📥 Descargar Apuntes (.txt)",
+                                    "📥 Descargar (.txt)",
                                     data=clase["contenido"],
                                     file_name=f"{clase['titulo']}_Apuntes.txt",
                                     key=f"dl_txt_{clase['id']}"
@@ -599,7 +623,7 @@ with pestañas_principales[0]:
                             st.markdown("---")
                             
                             # Tutor Chat
-                            st.markdown(f"##### 💬 Tutor IA: Preguntas y Dudas sobre '{clase['titulo']}'")
+                            st.markdown(f"##### 💬 Tutor IA: Consultas sobre '{clase['titulo']}'")
                             historial_chat = clase.get("chat", [])
                             for mensaje in historial_chat:
                                 if mensaje["rol"] == "user":
@@ -608,29 +632,22 @@ with pestañas_principales[0]:
                                     st.markdown(f"**🤖 Gemini:** {mensaje['texto']}")
 
                             with st.form(f"form_chat_{clase['id']}"):
-                                pregunta_usuario = st.text_input("Hazle una pregunta a la IA sobre esta clase:", placeholder="Ej. Explícame el concepto principal con otro ejemplo...")
-                                submit_chat = st.form_submit_button("Enviar Pregunta")
-                                
-                                if submit_chat and pregunta_usuario.strip():
+                                pregunta_usuario = st.text_input("Pregunta sobre esta clase:", placeholder="Ej. ¿Qué autores se citaron?", key=f"inp_chat_{clase['id']}")
+                                if st.form_submit_button("Enviar Pregunta") and pregunta_usuario.strip():
                                     client = obtener_cliente_ia()
-                                    if not client:
-                                        st.error("API Key de Gemini no configurada.")
-                                    else:
+                                    if client:
                                         with st.spinner("Pensando respuesta..."):
-                                            prompt_chat = f"""
+                                            p_chat = f"""
                                             Eres un tutor académico de apoyo para la estudiante Francesca Fellay.
-                                            Contexto de los apuntes de la clase ({clase['titulo']}):
+                                            Contexto de los apuntes ({clase['titulo']}):
                                             {clase['contenido']}
                                             
-                                            Pregunta de la estudiante:
-                                            {pregunta_usuario}
-                                            
-                                            Responde de forma pedagógica, clara y directa.
+                                            Pregunta: {pregunta_usuario}
                                             """
                                             try:
                                                 resp_chat = client.models.generate_content(
                                                     model=MODELO_GEMINI,
-                                                    contents=prompt_chat
+                                                    contents=p_chat
                                                 )
                                                 if "chat" not in clases_guardadas[idx_real]:
                                                     clases_guardadas[idx_real]["chat"] = []
@@ -640,7 +657,7 @@ with pestañas_principales[0]:
                                                 guardar_estado(db)
                                                 st.rerun()
                                             except Exception as e:
-                                                st.error(f"Error en el chat: {e}")
+                                                st.error(f"Error en chat: {e}")
 
 # ==========================================
 # 2. GRABACIONES ORIGINALES
@@ -668,7 +685,7 @@ with pestañas_principales[1]:
                         with open(g["ruta"], "rb") as f_play:
                             st.audio(f_play.read())
                     else:
-                        st.error("Archivo de audio no encontrado en el almacenamiento local.")
+                        st.error("Archivo físico no encontrado.")
                 with c_g2:
                     if os.path.exists(g["ruta"]):
                         with open(g["ruta"], "rb") as f_dl:
