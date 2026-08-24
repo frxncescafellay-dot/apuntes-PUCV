@@ -24,42 +24,33 @@ DIR_PERFILES = os.path.join(DIR_BASE, "perfil_usuario")
 FILE_DB = os.path.join(DIR_BASE, "cuadernos_db.json")
 
 for d in [DIR_BASE, DIR_AUDIO_RAW, DIR_PERFILES]:
-    os.makedirs(d, exist_ok=True)
+    os.makedirs(d, exist_ok=True)[cite: 1]
 
-MODELO_WHISPER = "whisper-large-v3"
+MODELO_WHISPER = "whisper-large-v3"[cite: 3]
 
 # --- OBTENCION SEGURA DE API KEY GROQ ---
 def obtener_api_key():
     if "GROQ_API_KEY" in st.secrets:
-        return st.secrets["GROQ_API_KEY"]
-    return os.environ.get("GROQ_API_KEY", "")
+        return st.secrets["GROQ_API_KEY"][cite: 3]
+    return os.environ.get("GROQ_API_KEY", "")[cite: 3]
 
-API_KEY_GROQ = obtener_api_key()
+API_KEY_GROQ = obtener_api_key()[cite: 3]
 
 def obtener_cliente_ia():
     if not API_KEY_GROQ:
         return None
     try:
-        return Groq(api_key=API_KEY_GROQ)
+        return Groq(api_key=API_KEY_GROQ)[cite: 3]
     except Exception as e:
-        st.error(f"Error al conectar con Groq: {e}")
         return None
 
 def ejecutar_chat_groq(client, prompt_sistema, prompt_usuario):
-    modelos_preferidos = [
+    modelos_candidatos = [
         "llama-3.3-70b-versatile",
-        "llama-3.1-70b-versatile",
         "mixtral-8x7b-32768",
         "gemma2-9b-it"
     ]
-    try:
-        lista_api = [m.id for m in client.models.list().data if "whisper" not in m.id]
-    except Exception:
-        lista_api = []
-
-    candidatos = [m for m in modelos_preferidos if m in lista_api] + lista_api + modelos_preferidos
-
-    for model_id in candidatos:
+    for model_id in modelos_candidatos:
         try:
             resp = client.chat.completions.create(
                 model=model_id,
@@ -72,7 +63,7 @@ def ejecutar_chat_groq(client, prompt_sistema, prompt_usuario):
             return resp.choices[0].message.content
         except Exception:
             continue
-    raise Exception("No se encontró ningún modelo de texto compatible activo en Groq.")
+    raise Exception("No se pudo conectar con el modelo de IA en Groq.")
 
 # --- ESTILOS VISUALES SKILLPATH (LAVANDA & MORADO) ---
 st.markdown("""
@@ -151,7 +142,7 @@ div[data-testid="stExpander"] summary * {
     font-weight: 750 !important;
 }
 
-/* Inputs en Sidebar */
+/* Inputs y Selectores */
 section[data-testid="stSidebar"] input[type="text"] {
     background-color: #ede9fe !important;
     color: #2e1065 !important;
@@ -160,7 +151,6 @@ section[data-testid="stSidebar"] input[type="text"] {
     font-weight: 600 !important;
 }
 
-/* Selector en Sidebar */
 section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
     background-color: #ede9fe !important;
     border: 1.5px solid #c4b5fd !important;
@@ -188,6 +178,20 @@ div[data-testid="stDownloadButton"]>button {
     border: 1.5px solid #c4b5fd !important;
     border-radius: 9px !important;
     padding: 8px 18px !important;
+    font-weight: 750 !important;
+}
+
+/* CONTENEDOR DE AUDIO NATIVO Y CARGADOR */
+div[data-testid="stAudioInput"],
+div[data-testid="stFileUploader"] {
+    background-color: #ede9fe !important;
+    border: 2px dashed #8b5cf6 !important;
+    border-radius: 12px !important;
+    padding: 10px !important;
+}
+div[data-testid="stAudioInput"] *,
+div[data-testid="stFileUploader"] * {
+    color: #3b0764 !important;
     font-weight: 750 !important;
 }
 
@@ -221,7 +225,7 @@ div[data-testid="stDownloadButton"]>button {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 </style>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True)[cite: 1]
 
 # --- GESTOR DE PERSISTENCIA ---
 def cargar_estado():
@@ -259,13 +263,13 @@ def cargar_estado():
         data["modulos"] = {"6to Semestre TSL": {"carpetas": {}}}
         guardar_estado(data)
         
-    return data
+    return data[cite: 1]
 
 def guardar_estado(data):
     with open(FILE_DB, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(data, f, ensure_ascii=False, indent=2)[cite: 1]
 
-db = cargar_estado()
+db = cargar_estado()[cite: 1]
 
 # --- BARRA LATERAL ---
 st.sidebar.markdown("### 🎓 Mi Perfil Académico")
@@ -279,11 +283,11 @@ else:
         <div style='width:90px; height:90px; border-radius:50%; background:linear-gradient(135deg, #a78bfa, #ede9fe); display:flex; align-items:center; justify-content:center; font-size:2.4rem; margin-bottom:12px; border:2px solid #ffffff;'>
             👩‍🎓
         </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)[cite: 1]
 
-st.sidebar.markdown(f"<h3 style='margin:0; font-size:1.15rem; color:#ffffff;'>{perfil.get('nombre', 'Francesca Fellay')}</h3>", unsafe_allow_html=True)
-st.sidebar.markdown(f"<p style='margin:2px 0; font-size:0.85rem; color:#ede9fe;'>🏛️ {perfil.get('universidad', 'Pontificia Universidad Católica de Valparaíso')}</p>", unsafe_allow_html=True)
-st.sidebar.markdown(f"<p style='margin:2px 0 10px 0; font-size:0.85rem; color:#ede9fe;'>📍 {perfil.get('ubicacion', 'Valparaíso, Chile')}</p>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<h3 style='margin:0; font-size:1.15rem; color:#ffffff;'>{perfil.get('nombre', 'Francesca Fellay')}</h3>", unsafe_allow_html=True)[cite: 1]
+st.sidebar.markdown(f"<p style='margin:2px 0; font-size:0.85rem; color:#ede9fe;'>🏛️ {perfil.get('universidad', 'Pontificia Universidad Católica de Valparaíso')}</p>", unsafe_allow_html=True)[cite: 1]
+st.sidebar.markdown(f"<p style='margin:2px 0 10px 0; font-size:0.85rem; color:#ede9fe;'>📍 {perfil.get('ubicacion', 'Valparaíso, Chile')}</p>", unsafe_allow_html=True)[cite: 1]
 
 with st.sidebar.expander("⚙️ Editar Datos del Perfil"):
     n_nom = st.text_input("Nombre:", value=perfil.get("nombre", "Francesca Fellay"))
@@ -302,9 +306,9 @@ with st.sidebar.expander("⚙️ Editar Datos del Perfil"):
             db["perfil"]["avatar"] = r_av
         guardar_estado(db)
         st.success("Perfil actualizado.")
-        st.rerun()
+        st.rerun()[cite: 1]
 
-st.sidebar.markdown("<hr style='border:0.5px solid rgba(255,255,255,0.2); margin:16px 0;'>", unsafe_allow_html=True)
+st.sidebar.markdown("<hr style='border:0.5px solid rgba(255,255,255,0.2); margin:16px 0;'>", unsafe_allow_html=True)[cite: 1]
 
 # --- SELECTOR DE MÓDULO ---
 st.sidebar.markdown("### 📚 Selector de Módulo")
@@ -323,11 +327,11 @@ with st.sidebar.expander("➕ Crear Nuevo Módulo"):
             db["modulos"][nuevo_mod_nom] = {"carpetas": {}}
             guardar_estado(db)
             st.success("Módulo creado con éxito.")
-            st.rerun()
+            st.rerun()[cite: 1]
 
 # --- HEADER BRAND ---
-tz_cl = pytz.timezone("America/Santiago")
-hora_actual = datetime.now(tz_cl).strftime("%d/%m/%Y | %H:%M:%S")
+tz_cl = pytz.timezone("America/Santiago")[cite: 1]
+hora_actual = datetime.now(tz_cl).strftime("%d/%m/%Y | %H:%M:%S")[cite: 1]
 
 st.markdown(f"""
 <div class='brand-navbar'>
@@ -337,9 +341,9 @@ st.markdown(f"""
     </div>
     <div style='font-size:0.88rem; font-weight:600;'>🇨🇱 {hora_actual}</div>
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True)[cite: 1]
 
-pestañas_principales = st.tabs(["📁 Mis Carpetas & Clases", "🎙️ Grabaciones Originales"])
+pestañas_principales = st.tabs(["📁 Mis Carpetas & Clases", "🎙️ Grabaciones Originales"])[cite: 1]
 
 # ==========================================
 # 1. MIS CARPETAS & CLASES
@@ -352,15 +356,15 @@ with pestañas_principales[0]:
     st.markdown(f"""
     <div class='welcome-card'>
         <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
-        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Transcripción y viñetas en español latino mientras la clase se desarrolla.</p>
+        <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Transcripción y viñetas en <b>es-CL</b> mientras la clase se desarrolla.</p>
     </div>
     <div class='stats-grid'>
         <div class='stat-card-1'><div class='stat-value'>{total_carpetas}</div><div class='stat-label'>Materias / Carpetas</div></div>
         <div class='stat-card-2'><div class='stat-value'>{total_clases}</div><div class='stat-label'>Clases Procesadas</div></div>
         <div class='stat-card-3'><div class='stat-value'>{len(db['grabaciones'])}</div><div class='stat-label'>Audios Grabados</div></div>
-        <div class='stat-card-4'><div class='stat-value'>⚡ En Vivo</div><div class='stat-label'>Español Latino</div></div>
+        <div class='stat-card-4'><div class='stat-value'>⚡ es-CL Activo</div><div class='stat-label'>Pipeline Semántico</div></div>
     </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)[cite: 1]
 
     with st.expander("➕ Crear Nueva Carpeta de Materia en " + modulo_actual, expanded=(total_carpetas == 0)):
         col_c1, col_c2 = st.columns([2, 1])
@@ -381,9 +385,9 @@ with pestañas_principales[0]:
                     st.success(f"Carpeta '{nom_carpeta}' agregada al módulo.")
                     st.rerun()
                 else:
-                    st.error("Ya existe una carpeta con ese nombre en este módulo.")
+                    st.error("Ya existe una carpeta con ese nombre en este módulo.")[cite: 1]
 
-    st.markdown("---")
+    st.markdown("---")[cite: 1]
 
     if not carpetas_modulo:
         st.info(f"Aún no has creado carpetas en el módulo '{modulo_actual}'. Crea la primera materia arriba.")
@@ -396,16 +400,29 @@ with pestañas_principales[0]:
             info_mat = carpetas_modulo[nombre_mat]
 
             with tab_materia:
-                st.markdown(f"### 📖 {nombre_mat}")
-                st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
+                st.markdown(f"### 📖 {nombre_mat}")[cite: 1]
+                st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")[cite: 1]
                 
-                nom_sesion_live = st.text_input("Tema / Título de la clase:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"t_live_input_{nombre_mat}")
+                nom_sesion_live = st.text_input("Tema / Título de la clase:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"t_live_input_{nombre_mat}")[cite: 1]
 
-                session_key_borrador = f"live_notes_draft_{modulo_actual}_{nombre_mat}"
+                session_key_borrador = f"live_notes_draft_{modulo_actual}_{nombre_mat}"[cite: 1]
+                session_key_last_proc = f"last_processed_audio_sig_{modulo_actual}_{nombre_mat}"[cite: 3]
+
                 if session_key_borrador not in st.session_state:
-                    st.session_state[session_key_borrador] = ""
+                    st.session_state[session_key_borrador] = ""[cite: 1]
+                if session_key_last_proc not in st.session_state:
+                    st.session_state[session_key_last_proc] = ""[cite: 3]
 
-                # --- MOTOR EN VIVO: ESTRUCTURACIÓN CONTINUA EN ESPAÑOL LATINO ---
+                # --- 1. CONSOLA CONTINUA EN VIVO (SpeechRecognition en es-CL) ---
+                st.markdown("""
+                <div class='app-card'>
+                    <h4 style='margin:0 0 8px 0; color:#5b21b6;'>🎙️ Consola en Vivo: Reconocimiento y Viñetas Automáticas (es-CL)</h4>
+                    <p style='color:#64748b; font-size:0.9rem; margin-bottom:12px;'>
+                        Presiona <b>🔴 Iniciar</b> para hablar. El motor en <b>es-CL</b> capturará cada idea y la organizará en viñetas y conceptos clave en tiempo real.
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)[cite: 1]
+
                 html_live_console = """
                 <div style="background-color: #ede9fe; border: 2px dashed #8b5cf6; border-radius: 14px; padding: 18px; font-family: 'Segoe UI', system-ui, sans-serif;">
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
@@ -427,15 +444,15 @@ with pestañas_principales[0]:
                     </div>
 
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-size: 0.95rem; font-weight: 750; color: #3b0764;">📝 Apuntes & Conceptos Clave Estructurados en Vivo (Español Latino):</span>
+                        <span style="font-size: 0.95rem; font-weight: 750; color: #3b0764;">📝 Apuntes & Conceptos Clave Estructurados en Vivo (es-CL):</span>
                         <button onclick="copiarApuntes()" style="background: #ffffff; color: #4c1d95; border: 1px solid #c4b5fd; padding: 5px 14px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
                             📋 Copiar Apuntes
                         </button>
                     </div>
 
-                    <div id="live_structured_notes" style="background: #ffffff; border: 1.5px solid #c4b5fd; border-radius: 10px; padding: 18px; min-height: 220px; max-height: 420px; overflow-y: auto; font-size: 0.96rem; color: #1e1b4b; line-height: 1.6;">
+                    <div id="live_structured_notes" style="background: #ffffff; border: 1.5px solid #c4b5fd; border-radius: 10px; padding: 18px; min-height: 200px; max-height: 380px; overflow-y: auto; font-size: 0.96rem; color: #1e1b4b; line-height: 1.6;">
                         <div style="color: #94a3b8; font-style: italic;">
-                            Presiona <b>'🔴 Iniciar'</b> para que la IA escuche la clase y redacte automáticamente aquí tus apuntes en viñetas estructuradas a medida que transcurre...
+                            Presiona <b>'🔴 Iniciar'</b> para que la IA escuche la clase y organice automáticamente tus notas en viñetas estructuradas a medida que hablas...
                         </div>
                     </div>
                 </div>
@@ -446,62 +463,65 @@ with pestañas_principales[0]:
                 let finalNotesList = [];
                 let seenPhrases = new Set();
 
-                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    recognition = new SpeechRecognition();
-                    recognition.continuous = true;
-                    recognition.interimResults = true;
-                    recognition.lang = 'es-419'; // Español Latinoamericano
+                function setupSpeechRecognition() {
+                    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        recognition = new SpeechRecognition();
+                        recognition.continuous = true;
+                        recognition.interimResults = true;
+                        recognition.lang = 'es-CL';
 
-                    recognition.onstart = function() {
-                        isRecording = true;
-                        document.getElementById('status_text').innerHTML = '🔴 <span style="color:#b91c1c;">Grabando y redactando en tiempo real...</span>';
-                        document.getElementById('btn_iniciar').disabled = true;
-                        document.getElementById('btn_pausar').disabled = false;
-                        document.getElementById('btn_detener').disabled = false;
-                    };
+                        recognition.onstart = function() {
+                            isRecording = true;
+                            document.getElementById('status_text').innerHTML = '🔴 <span style="color:#b91c1c;">Grabando y redactando en vivo (es-CL)...</span>';
+                            document.getElementById('btn_iniciar').disabled = true;
+                            document.getElementById('btn_pausar').disabled = false;
+                            document.getElementById('btn_detener').disabled = false;
+                        };
 
-                    recognition.onresult = function(event) {
-                        for (let i = event.resultIndex; i < event.results.length; ++i) {
-                            if (event.results[i].isFinal) {
-                                let rawSentence = event.results[i][0].transcript.trim();
-                                rawSentence = rawSentence.replace(/\b(\w+)\s+\1\b/gi, '$1'); // Elimina repeticiones consecutivas de dicción
+                        recognition.onresult = function(event) {
+                            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                                if (event.results[i].isFinal) {
+                                    let rawSentence = event.results[i][0].transcript.trim();
+                                    rawSentence = rawSentence.replace(/\\b(\\w+)\\s+\\1\\b/gi, '$1');
 
-                                if (rawSentence.length > 5 && !seenPhrases.has(rawSentence.toLowerCase())) {
-                                    seenPhrases.add(rawSentence.toLowerCase());
+                                    if (rawSentence.length > 5 && !seenPhrases.has(rawSentence.toLowerCase())) {
+                                        seenPhrases.add(rawSentence.toLowerCase());
 
-                                    // Formato de viñeta con concepto destacado
-                                    const words = rawSentence.split(' ');
-                                    let formattedBullet = '';
-                                    if (words.length > 3) {
-                                        const keyConcept = words.slice(0, 3).join(' ');
-                                        const rest = words.slice(3).join(' ');
-                                        formattedBullet = '• <b>' + keyConcept.charAt(0).toUpperCase() + keyConcept.slice(1) + ':</b> ' + rest;
-                                    } else {
-                                        formattedBullet = '• ' + rawSentence.charAt(0).toUpperCase() + rawSentence.slice(1);
+                                        const words = rawSentence.split(' ');
+                                        let formattedBullet = '';
+                                        if (words.length > 3) {
+                                            const keyConcept = words.slice(0, 3).join(' ');
+                                            const rest = words.slice(3).join(' ');
+                                            formattedBullet = '• <b>' + keyConcept.charAt(0).toUpperCase() + keyConcept.slice(1) + ':</b> ' + rest;
+                                        } else {
+                                            formattedBullet = '• ' + rawSentence.charAt(0).toUpperCase() + rawSentence.slice(1);
+                                        }
+
+                                        finalNotesList.push(formattedBullet);
+                                        renderLiveNotes();
                                     }
-
-                                    finalNotesList.push(formattedBullet);
-                                    renderLiveNotes();
                                 }
                             }
-                        }
-                    };
+                        };
 
-                    recognition.onerror = function(event) {
-                        if (event.error !== 'no-speech') {
-                            document.getElementById('status_text').innerHTML = '⚠️ Estado: ' + event.error;
-                        }
-                    };
+                        recognition.onerror = function(event) {
+                            if (event.error !== 'no-speech') {
+                                document.getElementById('status_text').innerHTML = '⚠️ Estado: ' + event.error;
+                            }
+                        };
 
-                    recognition.onend = function() {
-                        if (isRecording) {
-                            try { recognition.start(); } catch(e) {}
-                        }
-                    };
-                } else {
-                    document.getElementById('status_text').innerText = '⚠️ Navegador no compatible con reconocimiento continuo.';
+                        recognition.onend = function() {
+                            if (isRecording) {
+                                try { recognition.start(); } catch(e) {}
+                            }
+                        };
+                    } else {
+                        document.getElementById('status_text').innerText = '⚠️ Navegador no compatible con Web Speech API.';
+                    }
                 }
+
+                setupSpeechRecognition();
 
                 function renderLiveNotes() {
                     const container = document.getElementById('live_structured_notes');
@@ -514,6 +534,7 @@ with pestañas_principales[0]:
                 }
 
                 function iniciarGrabacion() {
+                    if (!recognition) setupSpeechRecognition();
                     finalNotesList = [];
                     seenPhrases.clear();
                     document.getElementById('live_structured_notes').innerHTML = '<i style="color:#6d28d9;">🎤 Escuchando atentamente y estructurando apuntes en vivo...</i>';
@@ -556,58 +577,131 @@ with pestañas_principales[0]:
                 }
 
                 function copiarApuntes() {
-                    const cleanText = finalNotesList.map(n => n.replace(/<[^>]*>?/gm, '')).join('\n');
+                    const cleanText = finalNotesList.map(n => n.replace(/<[^>]*>?/gm, '')).join('\\n');
                     navigator.clipboard.writeText(cleanText);
                     alert("¡Apuntes copiados al portapapeles con éxito!");
                 }
                 </script>
                 """
-                components.html(html_live_console, height=380)
+                components.html(html_live_console, height=360)[cite: 2]
 
-                # --- REGISTRO DIRECTO EN EL CUADERNO ---
-                st.markdown("##### 💾 Archivar Sesión en Cuaderno Permanente")
+                # --- 2. GRABACIÓN NATIVA DE STREAMLIT (SOPORTE DIRECTO GROQ WHISPER) ---
+                st.markdown("##### 🎙️ O Grabar con el Micrófono Nativo de Streamlit:")
+                c_rec_live, c_up_live = st.columns([1.2, 1.2])[cite: 3]
+                with c_rec_live:
+                    audio_live_in = st.audio_input("Presiona para Grabar / Pausar / Detener:", key=f"live_audio_in_{modulo_actual}_{nombre_mat}")[cite: 3]
+
+                with c_up_live:
+                    uploaded_live_in = st.file_uploader("O cargar archivo de audio (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"live_up_in_{modulo_actual}_{nombre_mat}")[cite: 3]
+
+                audio_bytes_capturados = None
+                ext_capturado = "wav"
+
+                if audio_live_in is not None:
+                    audio_bytes_capturados = audio_live_in.getvalue()[cite: 3]
+                    ext_capturado = "wav"[cite: 3]
+                elif uploaded_live_in is not None:
+                    audio_bytes_capturados = uploaded_live_in.getvalue()[cite: 3]
+                    ext_capturado = uploaded_live_in.name.split(".")[-1].lower()[cite: 3]
+
+                if audio_bytes_capturados is not None:
+                    audio_sig = f"{len(audio_bytes_capturados)}_{hash(audio_bytes_capturados[:64])}"[cite: 3]
+                    if audio_sig != st.session_state[session_key_last_proc]:
+                        client = obtener_cliente_ia()[cite: 3]
+                        if client:
+                            with st.spinner("⚡ Transcribiendo con Whisper y organizando apuntes en vivo..."):[cite: 3]
+                                try:
+                                    audio_buffer = io.BytesIO(audio_bytes_capturados)[cite: 3]
+                                    audio_buffer.name = f"audio_temp.{ext_capturado}"[cite: 3]
+                                    transcripcion = client.audio.transcriptions.create(
+                                        model=MODELO_WHISPER,
+                                        file=audio_buffer,
+                                        language="es"
+                                    )[cite: 3]
+                                    texto_transcrito = transcripcion.text[cite: 3]
+
+                                    p_sys = f"Eres la asistente académica de excelencia de la estudiante universitaria Francesca Fellay en la materia '{nombre_mat}'. Redacta siempre en español latinoamericano."
+                                    p_user = f"""
+                                    Título de la sesión: {nom_sesion_live if nom_sesion_live.strip() else 'Clase Universitaria'}.
+                                    
+                                    TRANSCRIPCIÓN EN VIVO:
+                                    \"\"\"
+                                    {texto_transcrito}
+                                    \"\"\"
+                                    
+                                    Genera los apuntes organizados con esta estructura:
+                                    # 📌 Resumen Ejecutivo de la Clase
+                                    ## 🎯 Objetivos y Temas Principales
+                                    ## 📝 Desarrollo Detallado y Conceptos Clave (con viñetas claras, definiciones y explicaciones en negrita)
+                                    ## 💡 Ejemplos Prácticos y Casos Mencionados
+                                    ## ⚠️ Tareas, Acuerdos y Puntos Críticos para Estudiar
+                                    """
+                                    apuntes_generados = ejecutar_chat_groq(client, p_sys, p_user)
+                                    st.session_state[session_key_borrador] = apuntes_generados[cite: 3]
+                                    st.session_state[session_key_last_proc] = audio_sig[cite: 3]
+
+                                    n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_capturado}"[cite: 3]
+                                    r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)[cite: 3]
+                                    with open(r_dest, "wb") as f_raw:
+                                        f_raw.write(audio_bytes_capturados)[cite: 3]
+                                    
+                                    db["grabaciones"].append({
+                                        "titulo": nom_sesion_live if nom_sesion_live.strip() else f"Grabación {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}",
+                                        "materia": nombre_mat,
+                                        "modulo": modulo_actual,
+                                        "fecha": datetime.now(tz_cl).strftime("%Y-%m-%d %H:%M"),
+                                        "ruta": r_dest
+                                    })[cite: 3]
+                                    guardar_estado(db)[cite: 3]
+                                    st.success("✅ ¡Apuntes procesados y redactados con éxito!")[cite: 3]
+                                except Exception as e:
+                                    st.error(f"Error procesando con Groq: {e}")[cite: 3]
+
+                # --- 3. ARCHIVADO EN CUADERNO PERMANENTE ---
+                st.markdown("##### 💾 Guardar en Cuaderno Permanente:")
                 texto_final_clase = st.text_area(
-                    "Pega aquí los apuntes generados para guardarlos de forma permanente en la materia:",
+                    "Pega aquí las viñetas generadas en vivo (o usa 'Copiar Apuntes' arriba) para archivarlas en la materia:",
                     value=st.session_state[session_key_borrador],
-                    placeholder="• Concepto 1: Definición...\n• Concepto 2: Explicación...",
+                    placeholder="• Concepto 1: Explicación...\n• Concepto 2: Definición...",
                     height=160,
                     key=f"area_txt_live_{nombre_mat}"
-                )
+                )[cite: 2]
 
-                col_sv1, col_sv2 = st.columns([2, 1])
+                col_sv1, col_sv2 = st.columns([2, 1])[cite: 2]
                 with col_sv1:
-                    if st.button("💾 Guardar Clase en Cuaderno Permanente", key=f"btn_save_perm_{nombre_mat}"):
+                    if st.button("💾 Archivar Clase en Cuaderno Permanente", key=f"btn_save_perm_{nombre_mat}"):[cite: 2]
                         if not texto_final_clase.strip():
-                            st.warning("Pega los apuntes antes de guardar.")
+                            st.warning("Pega o escribe los apuntes antes de guardar.")[cite: 2]
                         else:
-                            titulo_final = nom_sesion_live.strip() if nom_sesion_live.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"
+                            titulo_final = nom_sesion_live.strip() if nom_sesion_live.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"[cite: 2]
                             info_mat["clases"].append({
                                 "id": f"clase_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                                 "titulo": titulo_final,
                                 "fecha": datetime.now(tz_cl).strftime("%d/%m/%Y %H:%M"),
                                 "contenido": texto_final_clase,
                                 "chat": []
-                            })
-                            guardar_estado(db)
-                            st.session_state[session_key_borrador] = ""
-                            st.success("¡Clase guardada exitosamente en tu cuaderno permanente!")
-                            st.rerun()
+                            })[cite: 2]
+                            guardar_estado(db)[cite: 2]
+                            st.session_state[session_key_borrador] = ""[cite: 2]
+                            st.session_state[session_key_last_proc] = ""[cite: 3]
+                            st.success("¡Clase archivada exitosamente en tu cuaderno permanente!")
+                            st.rerun()[cite: 2]
 
-                st.markdown("---")
+                st.markdown("---")[cite: 1]
 
                 # --- HISTORIAL DE CLASES GUARDADAS EN LA MATERIA ---
-                st.markdown("#### 📚 Cuaderno de Apuntes Guardados")
-                clases_guardadas = info_mat.get("clases", [])
+                st.markdown("#### 📚 Cuaderno de Apuntes Guardados")[cite: 1]
+                clases_guardadas = info_mat.get("clases", [])[cite: 1]
                 
                 if not clases_guardadas:
-                    st.info("Aún no has archivado clases en esta materia. Inicia una grabación arriba.")
+                    st.info("Aún no has archivado clases en esta materia. Inicia una grabación arriba.")[cite: 2]
                 else:
                     for idx_c, clase in enumerate(reversed(clases_guardadas)):
-                        idx_real = len(clases_guardadas) - 1 - idx_c
+                        idx_real = len(clases_guardadas) - 1 - idx_c[cite: 1]
                         with st.expander(f"📝 {clase['titulo']} — ({clase['fecha']})", expanded=(idx_c == 0)):
-                            c_hist_content, c_hist_actions = st.columns([4, 1])
+                            c_hist_content, c_hist_actions = st.columns([4, 1])[cite: 1]
                             with c_hist_content:
-                                st.markdown(clase["contenido"])
+                                st.markdown(clase["contenido"])[cite: 1]
                             
                             with c_hist_actions:
                                 st.download_button(
@@ -615,43 +709,43 @@ with pestañas_principales[0]:
                                     data=clase["contenido"],
                                     file_name=f"{clase['titulo']}_Apuntes.txt",
                                     key=f"dl_txt_{clase['id']}"
-                                )
-                                if st.button("🗑️ Eliminar Clase", key=f"del_cls_{clase['id']}"):
-                                    clases_guardadas.pop(idx_real)
-                                    guardar_estado(db)
-                                    st.success("Clase eliminada.")
-                                    st.rerun()
+                                )[cite: 1]
+                                if st.button("🗑️ Eliminar Clase", key=f"del_cls_{clase['id']}"):[cite: 1]
+                                    clases_guardadas.pop(idx_real)[cite: 1]
+                                    guardar_estado(db)[cite: 1]
+                                    st.success("Clase eliminada.")[cite: 1]
+                                    st.rerun()[cite: 1]
 
-                            st.markdown("---")
+                            st.markdown("---")[cite: 1]
                             
                             # Tutor Chat
-                            st.markdown(f"##### 💬 Tutor IA: Consultas sobre '{clase['titulo']}'")
-                            historial_chat = clase.get("chat", [])
+                            st.markdown(f"##### 💬 Tutor IA: Consultas sobre '{clase['titulo']}'")[cite: 1]
+                            historial_chat = clase.get("chat", [])[cite: 1]
                             for mensaje in historial_chat:
                                 if mensaje["rol"] == "user":
-                                    st.markdown(f"**Tú:** {mensaje['texto']}")
+                                    st.markdown(f"**Tú:** {mensaje['texto']}")[cite: 1]
                                 else:
-                                    st.markdown(f"**🤖 Tutor IA:** {mensaje['texto']}")
+                                    st.markdown(f"**🤖 Tutor IA:** {mensaje['texto']}")[cite: 3]
 
-                            with st.form(f"form_chat_{clase['id']}"):
-                                pregunta_usuario = st.text_input("Haz una pregunta sobre el contenido de esta clase:", placeholder="Ej. ¿Qué autores se citaron?", key=f"inp_chat_{clase['id']}")
-                                if st.form_submit_button("Consultar al Tutor") and pregunta_usuario.strip():
-                                    client = obtener_cliente_ia()
+                            with st.form(f"form_chat_{clase['id']}"):[cite: 1]
+                                pregunta_usuario = st.text_input("Haz una pregunta sobre el contenido de esta clase:", placeholder="Ej. ¿Qué autores se citaron?", key=f"inp_chat_{clase['id']}")[cite: 1]
+                                if st.form_submit_button("Consultar al Tutor") and pregunta_usuario.strip():[cite: 1]
+                                    client = obtener_cliente_ia()[cite: 1]
                                     if client:
-                                        with st.spinner("Pensando respuesta..."):
-                                            p_sys = "Eres un tutor académico de apoyo para la estudiante Francesca Fellay. Responde siempre en español latinoamericano, de forma clara y precisa."
-                                            p_user = f"Contexto de los apuntes ({clase['titulo']}):\n{clase['contenido']}\n\nPregunta: {pregunta_usuario}"
+                                        with st.spinner("Pensando respuesta..."):[cite: 1]
+                                            p_sys = "Eres un tutor académico de apoyo para la estudiante Francesca Fellay. Responde siempre en español latinoamericano, de forma pedagógica, clara y directa."
+                                            p_user = f"Contexto de los apuntes ({clase['titulo']}):\n{clase['contenido']}\n\nPregunta: {pregunta_usuario}"[cite: 3]
                                             try:
-                                                resp_tutor = ejecutar_chat_groq(client, p_sys, p_user)
+                                                resp_tutor = ejecutar_chat_groq(client, p_sys, p_user)[cite: 3]
                                                 if "chat" not in clases_guardadas[idx_real]:
-                                                    clases_guardadas[idx_real]["chat"] = []
+                                                    clases_guardadas[idx_real]["chat"] = [][cite: 1]
                                                 
-                                                clases_guardadas[idx_real]["chat"].append({"rol": "user", "texto": pregunta_usuario})
-                                                clases_guardadas[idx_real]["chat"].append({"rol": "ai", "texto": resp_tutor})
-                                                guardar_estado(db)
-                                                st.rerun()
+                                                clases_guardadas[idx_real]["chat"].append({"rol": "user", "texto": pregunta_usuario})[cite: 1]
+                                                clases_guardadas[idx_real]["chat"].append({"rol": "ai", "texto": resp_tutor})[cite: 1]
+                                                guardar_estado(db)[cite: 1]
+                                                st.rerun()[cite: 1]
                                             except Exception as e:
-                                                st.error(f"Error en tutor: {e}")
+                                                st.error(f"Error en tutor: {e}")[cite: 1]
 
 # ==========================================
 # 2. GRABACIONES ORIGINALES
@@ -662,24 +756,24 @@ with pestañas_principales[1]:
         <h3 style='margin:0 0 6px 0; color:#5b21b6;'>🎙️ Repositorio Central de Grabaciones Originales</h3>
         <p style='margin:0; color:#64748b;'>Todas las grabaciones de voz se almacenan de forma segura aquí para su reproducción o descarga.</p>
     </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)[cite: 1]
 
-    grabaciones = db.get("grabaciones", [])
+    grabaciones = db.get("grabaciones", [])[cite: 1]
     if not grabaciones:
-        st.info("No hay grabaciones de audio guardadas todavía.")
+        st.info("No hay grabaciones de audio guardadas todavía.")[cite: 1]
     else:
         for idx_g, g in enumerate(reversed(grabaciones)):
-            idx_real_g = len(grabaciones) - 1 - idx_g
+            idx_real_g = len(grabaciones) - 1 - idx_g[cite: 1]
             with st.container():
-                c_g1, c_g2 = st.columns([4, 1])
+                c_g1, c_g2 = st.columns([4, 1])[cite: 1]
                 with c_g1:
-                    st.markdown(f"#### 🎵 {g['titulo']}")
-                    st.caption(f"Materia: **{g['materia']}** | Módulo: **{g.get('modulo', 'General')}** | Grabado: {g['fecha']}")
+                    st.markdown(f"#### 🎵 {g['titulo']}")[cite: 1]
+                    st.caption(f"Materia: **{g['materia']}** | Módulo: **{g.get('modulo', 'General')}** | Grabado: {g['fecha']}")[cite: 1]
                     if os.path.exists(g["ruta"]):
                         with open(g["ruta"], "rb") as f_play:
-                            st.audio(f_play.read())
+                            st.audio(f_play.read())[cite: 1]
                     else:
-                        st.error("Archivo físico no encontrado.")
+                        st.error("Archivo físico no encontrado.")[cite: 1]
                 with c_g2:
                     if os.path.exists(g["ruta"]):
                         with open(g["ruta"], "rb") as f_dl:
@@ -688,12 +782,12 @@ with pestañas_principales[1]:
                                 data=f_dl.read(),
                                 file_name=os.path.basename(g["ruta"]),
                                 key=f"dl_raw_{idx_real_g}"
-                            )
-                    if st.button("🗑️ Eliminar Audio", key=f"del_raw_{idx_real_g}"):
+                            )[cite: 1]
+                    if st.button("🗑️ Eliminar Audio", key=f"del_raw_{idx_real_g}"):[cite: 1]
                         if os.path.exists(g["ruta"]):
-                            os.remove(g["ruta"])
-                        grabaciones.pop(idx_real_g)
-                        guardar_estado(db)
-                        st.success("Grabación eliminada.")
-                        st.rerun()
-                st.markdown("---")
+                            os.remove(g["ruta"])[cite: 1]
+                        grabaciones.pop(idx_real_g)[cite: 1]
+                        guardar_estado(db)[cite: 1]
+                        st.success("Grabación eliminada.")[cite: 1]
+                        st.rerun()[cite: 1]
+                st.markdown("---")[cite: 1]
