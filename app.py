@@ -41,7 +41,6 @@ def obtener_cliente_ia():
     try:
         return Groq(api_key=API_KEY_GROQ)
     except Exception as e:
-        st.error(f"Error al conectar con Groq: {e}")
         return None
 
 def estructurar_apuntes_groq(client, texto_transcrito, materia, titulo, borrador_previo=""):
@@ -109,7 +108,7 @@ def estructurar_apuntes_groq(client, texto_transcrito, materia, titulo, borrador
 
     raise Exception(f"Fallo al conectar con los modelos de Groq. Detalle: {ultimo_error}")
 
-# --- ESTILOS VISUALES SKILLPATH (LAVANDA & MORADO) ---
+# --- ESTILOS VISUALES SKILLPATH (LAVANDA & MORADO CON CONTRASTE MEJORADO) ---
 st.markdown("""
 <style>
 html, body, [class*="css"], .stApp { 
@@ -164,6 +163,26 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
     background-color: rgba(255, 255, 255, 0.18) !important;
     color: #ffffff !important;
     font-weight: 700 !important;
+}
+
+/* TABS / PESTAÑAS - CONTRASTE Y LEGIBILIDAD ARREGLADA */
+button[data-baseweb="tab"] {
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    color: #475569 !important; /* Gris oscuro nítido para carpetas NO seleccionadas */
+    padding: 10px 18px !important;
+    border-radius: 8px 8px 0 0 !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+button[data-baseweb="tab"]:hover {
+    color: #6214c7 !important;
+    background-color: rgba(139, 92, 246, 0.08) !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: #6214c7 !important; /* Morado marca seleccionado */
+    border-bottom: 3px solid #6214c7 !important;
 }
 
 /* DESPLEGABLES */
@@ -267,6 +286,7 @@ div[data-testid="stAudioInput"] * {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
+/* CUADRO DE APUNTES CON SCROLLBAR MORADA NÍTIDA */
 .live-notes-box {
     background-color: #ffffff;
     border: 2px solid #8b5cf6;
@@ -280,6 +300,25 @@ div[data-testid="stAudioInput"] * {
     line-height: 1.6;
     box-shadow: 0 4px 14px rgba(139, 92, 246, 0.1);
     margin-top: 10px;
+    scrollbar-color: #8b5cf6 #ede9fe; /* Para Firefox */
+    scrollbar-width: thin;
+}
+
+/* Scrollbar estilizada para Chrome/Safari/Edge */
+.live-notes-box::-webkit-scrollbar {
+    width: 10px;
+}
+.live-notes-box::-webkit-scrollbar-track {
+    background: #ede9fe;
+    border-radius: 8px;
+}
+.live-notes-box::-webkit-scrollbar-thumb {
+    background: #8b5cf6;
+    border-radius: 8px;
+    border: 2px solid #ede9fe;
+}
+.live-notes-box::-webkit-scrollbar-thumb:hover {
+    background: #6214c7;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -327,6 +366,40 @@ def guardar_estado(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 db = cargar_estado()
+
+# --- MODAL / DIALOGO DE AUDIOS DE LA CARPETA ---
+@st.dialog("🎧 Audios Guardados de esta Carpeta", width="large")
+def modal_audios_carpeta(nombre_materia, modulo):
+    st.markdown(f"#### 📂 Materia: **{nombre_materia}** ({modulo})")
+    st.caption("Reproduce y descarga todas las grabaciones originales asociadas a esta carpeta:")
+    
+    audios_mat = [g for g in db.get("grabaciones", []) if g.get("materia") == nombre_materia and g.get("modulo", modulo) == modulo]
+    
+    if not audios_mat:
+        st.info("No hay audios registrados todavía en esta carpeta.")
+    else:
+        for idx, g in enumerate(reversed(audios_mat)):
+            idx_real = len(audios_mat) - 1 - idx
+            with st.container():
+                c_m1, c_m2 = st.columns([3.5, 1.5])
+                with c_m1:
+                    st.markdown(f"**🎵 {g['titulo']}**")
+                    st.caption(f"📅 Fecha: {g['fecha']}")
+                    if os.path.exists(g["ruta"]):
+                        with open(g["ruta"], "rb") as f_play:
+                            st.audio(f_play.read())
+                    else:
+                        st.error("Archivo físico no encontrado.")
+                with c_m2:
+                    if os.path.exists(g["ruta"]):
+                        with open(g["ruta"], "rb") as f_dl:
+                            st.download_button(
+                                "📥 Descargar",
+                                data=f_dl.read(),
+                                file_name=os.path.basename(g["ruta"]),
+                                key=f"dl_dlg_{nombre_materia}_{idx_real}"
+                            )
+                st.markdown("---")
 
 # --- BARRA LATERAL ---
 st.sidebar.markdown("### 🎓 Mi Perfil Académico")
@@ -457,8 +530,13 @@ with pestañas_principales[0]:
             info_mat = carpetas_modulo[nombre_mat]
 
             with tab_materia:
-                st.markdown(f"### 📖 {nombre_mat}")
-                st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
+                c_mat_title, c_mat_audio_btn = st.columns([3.5, 1.5])
+                with c_mat_title:
+                    st.markdown(f"### 📖 {nombre_mat}")
+                    st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
+                with c_mat_audio_btn:
+                    if st.button(f"🎧 Audios Guardados", key=f"btn_open_audios_{modulo_actual}_{nombre_mat}"):
+                        modal_audios_carpeta(nombre_mat, modulo_actual)
                 
                 nom_sesion_live = st.text_input("Tema / Título de la clase:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"t_live_input_{nombre_mat}")
 
