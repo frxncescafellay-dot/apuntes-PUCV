@@ -23,31 +23,32 @@ DIR_PERFILES = os.path.join(DIR_BASE, "perfil_usuario")
 FILE_DB = os.path.join(DIR_BASE, "cuadernos_db.json")
 
 for d in [DIR_BASE, DIR_AUDIO_RAW, DIR_PERFILES]:
-    os.makedirs(d, exist_ok=True)
+    os.makedirs(d, exist_ok=True)[cite: 6]
 
-MODELO_WHISPER = "whisper-large-v3"
+MODELO_WHISPER = "whisper-large-v3"[cite: 6]
 
 # --- OBTENCION SEGURA DE API KEY GROQ ---
 def obtener_api_key():
     if "GROQ_API_KEY" in st.secrets:
-        return st.secrets["GROQ_API_KEY"]
-    return os.environ.get("GROQ_API_KEY", "")
+        return st.secrets["GROQ_API_KEY"][cite: 6]
+    return os.environ.get("GROQ_API_KEY", "")[cite: 6]
 
-API_KEY_GROQ = obtener_api_key()
+API_KEY_GROQ = obtener_api_key()[cite: 6]
 
 def obtener_cliente_ia():
     if not API_KEY_GROQ:
         return None
     try:
-        return Groq(api_key=API_KEY_GROQ)
+        return Groq(api_key=API_KEY_GROQ)[cite: 6]
     except Exception as e:
+        st.error(f"Error al conectar con Groq: {e}")
         return None
 
 def estructurar_apuntes_groq(client, texto_transcrito, materia, titulo, borrador_previo=""):
     prompt_sys = (
         f"Eres la asistente académica de excelencia de la estudiante universitaria Francesca Fellay "
         f"en la materia '{materia}'. Tu tarea es redactar y organizar apuntes académicos de alto nivel "
-        f"en español latinoamericano (Chile), usando una redacción clara, precisa y pedagógica."
+        f"en español latinoamericano, usando una redacción clara, precisa y pedagógica."
     )
     prompt_user = f"""
     Título de la clase: {titulo if titulo.strip() else 'Clase Universitaria'}.
@@ -73,8 +74,26 @@ def estructurar_apuntes_groq(client, texto_transcrito, materia, titulo, borrador
     3. Asegura que todo esté en español latino.
     """
     
-    modelos = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"]
-    for m in modelos:
+    # Obtener modelos activos reales de la cuenta
+    try:
+        modelos_disponibles = [m.id for m in client.models.list().data if "whisper" not in m.id.lower() and "guard" not in m.id.lower()]
+    except Exception:
+        modelos_disponibles = []
+
+    modelos_fallback = [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-70b-versatile",
+        "llama3-70b-8192",
+        "llama3-8b-8192",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it"
+    ]
+
+    candidatos = [m for m in modelos_fallback if m in modelos_disponibles] + modelos_disponibles + modelos_fallback
+    candidatos = list(dict.fromkeys(candidatos))
+
+    ultimo_error = None
+    for m in candidatos:
         try:
             resp = client.chat.completions.create(
                 model=m,
@@ -85,9 +104,11 @@ def estructurar_apuntes_groq(client, texto_transcrito, materia, titulo, borrador
                 temperature=0.3
             )
             return resp.choices[0].message.content
-        except Exception:
+        except Exception as e:
+            ultimo_error = e
             continue
-    raise Exception("No se pudo procesar la estructuración con Groq.")
+
+    raise Exception(f"Fallo al conectar con los modelos de Groq. Detalle: {ultimo_error}")
 
 # --- ESTILOS VISUALES SKILLPATH (LAVANDA & MORADO) ---
 st.markdown("""
@@ -262,7 +283,7 @@ div[data-testid="stAudioInput"] * {
     margin-top: 10px;
 }
 </style>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True)[cite: 6]
 
 # --- GESTOR DE PERSISTENCIA ---
 def cargar_estado():
@@ -300,75 +321,75 @@ def cargar_estado():
         data["modulos"] = {"6to Semestre TSL": {"carpetas": {}}}
         guardar_estado(data)
         
-    return data
+    return data[cite: 6]
 
 def guardar_estado(data):
     with open(FILE_DB, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(data, f, ensure_ascii=False, indent=2)[cite: 6]
 
-db = cargar_estado()
+db = cargar_estado()[cite: 6]
 
 # --- BARRA LATERAL ---
-st.sidebar.markdown("### 🎓 Mi Perfil Académico")
-perfil = db.get("perfil", {})
-avatar_path = perfil.get("avatar", "")
+st.sidebar.markdown("### 🎓 Mi Perfil Académico")[cite: 6]
+perfil = db.get("perfil", {})[cite: 6]
+avatar_path = perfil.get("avatar", "")[cite: 6]
 
 if avatar_path and os.path.exists(avatar_path):
-    st.sidebar.image(avatar_path, width=110)
+    st.sidebar.image(avatar_path, width=110)[cite: 6]
 else:
     st.sidebar.markdown("""
         <div style='width:90px; height:90px; border-radius:50%; background:linear-gradient(135deg, #a78bfa, #ede9fe); display:flex; align-items:center; justify-content:center; font-size:2.4rem; margin-bottom:12px; border:2px solid #ffffff;'>
             👩‍🎓
         </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)[cite: 6]
 
-st.sidebar.markdown(f"<h3 style='margin:0; font-size:1.15rem; color:#ffffff;'>{perfil.get('nombre', 'Francesca Fellay')}</h3>", unsafe_allow_html=True)
-st.sidebar.markdown(f"<p style='margin:2px 0; font-size:0.85rem; color:#ede9fe;'>🏛️ {perfil.get('universidad', 'Pontificia Universidad Católica de Valparaíso')}</p>", unsafe_allow_html=True)
-st.sidebar.markdown(f"<p style='margin:2px 0 10px 0; font-size:0.85rem; color:#ede9fe;'>📍 {perfil.get('ubicacion', 'Valparaíso, Chile')}</p>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<h3 style='margin:0; font-size:1.15rem; color:#ffffff;'>{perfil.get('nombre', 'Francesca Fellay')}</h3>", unsafe_allow_html=True)[cite: 6]
+st.sidebar.markdown(f"<p style='margin:2px 0; font-size:0.85rem; color:#ede9fe;'>🏛️ {perfil.get('universidad', 'Pontificia Universidad Católica de Valparaíso')}</p>", unsafe_allow_html=True)[cite: 6]
+st.sidebar.markdown(f"<p style='margin:2px 0 10px 0; font-size:0.85rem; color:#ede9fe;'>📍 {perfil.get('ubicacion', 'Valparaíso, Chile')}</p>", unsafe_allow_html=True)[cite: 6]
 
-with st.sidebar.expander("⚙️ Editar Datos del Perfil"):
-    n_nom = st.text_input("Nombre:", value=perfil.get("nombre", "Francesca Fellay"))
-    n_uni = st.text_input("Universidad:", value=perfil.get("universidad", "Pontificia Universidad Católica de Valparaíso"))
-    n_ubi = st.text_input("Ubicación:", value=perfil.get("ubicacion", "Valparaíso, Chile"))
-    n_img = st.file_uploader("Foto de perfil (JPG/PNG):", type=["jpg", "jpeg", "png"])
+with st.sidebar.expander("⚙️ Editar Datos del Perfil"):[cite: 6]
+    n_nom = st.text_input("Nombre:", value=perfil.get("nombre", "Francesca Fellay"))[cite: 6]
+    n_uni = st.text_input("Universidad:", value=perfil.get("universidad", "Pontificia Universidad Católica de Valparaíso"))[cite: 6]
+    n_ubi = st.text_input("Ubicación:", value=perfil.get("ubicacion", "Valparaíso, Chile"))[cite: 6]
+    n_img = st.file_uploader("Foto de perfil (JPG/PNG):", type=["jpg", "jpeg", "png"])[cite: 6]
     
-    if st.button("Guardar Perfil"):
-        db["perfil"]["nombre"] = n_nom
-        db["perfil"]["universidad"] = n_uni
-        db["perfil"]["ubicacion"] = n_ubi
+    if st.button("Guardar Perfil"):[cite: 6]
+        db["perfil"]["nombre"] = n_nom[cite: 6]
+        db["perfil"]["universidad"] = n_uni[cite: 6]
+        db["perfil"]["ubicacion"] = n_ubi[cite: 6]
         if n_img is not None:
-            r_av = os.path.join(DIR_PERFILES, "avatar_usuario.png")
+            r_av = os.path.join(DIR_PERFILES, "avatar_usuario.png")[cite: 6]
             with open(r_av, "wb") as f_av:
-                f_av.write(n_img.getbuffer())
-            db["perfil"]["avatar"] = r_av
-        guardar_estado(db)
-        st.success("Perfil actualizado.")
-        st.rerun()
+                f_av.write(n_img.getbuffer())[cite: 6]
+            db["perfil"]["avatar"] = r_av[cite: 6]
+        guardar_estado(db)[cite: 6]
+        st.success("Perfil actualizado.")[cite: 6]
+        st.rerun()[cite: 6]
 
-st.sidebar.markdown("<hr style='border:0.5px solid rgba(255,255,255,0.2); margin:16px 0;'>", unsafe_allow_html=True)
+st.sidebar.markdown("<hr style='border:0.5px solid rgba(255,255,255,0.2); margin:16px 0;'>", unsafe_allow_html=True)[cite: 6]
 
 # --- SELECTOR DE MÓDULO ---
-st.sidebar.markdown("### 📚 Selector de Módulo")
-lista_modulos = list(db["modulos"].keys())
+st.sidebar.markdown("### 📚 Selector de Módulo")[cite: 6]
+lista_modulos = list(db["modulos"].keys())[cite: 6]
 if not lista_modulos:
-    db["modulos"]["6to Semestre TSL"] = {"carpetas": {}}
-    guardar_estado(db)
-    lista_modulos = ["6to Semestre TSL"]
+    db["modulos"]["6to Semestre TSL"] = {"carpetas": {}}[cite: 6]
+    guardar_estado(db)[cite: 6]
+    lista_modulos = ["6to Semestre TSL"][cite: 6]
 
-modulo_actual = st.sidebar.selectbox("Módulo Activo:", lista_modulos)
+modulo_actual = st.sidebar.selectbox("Módulo Activo:", lista_modulos)[cite: 6]
 
-with st.sidebar.expander("➕ Crear Nuevo Módulo"):
-    nuevo_mod_nom = st.text_input("Nombre del nuevo módulo:")
-    if st.button("Crear Módulo"):
-        if nuevo_mod_nom.strip() and nuevo_mod_nom not in db["modulos"]:
-            db["modulos"][nuevo_mod_nom] = {"carpetas": {}}
-            guardar_estado(db)
-            st.success("Módulo creado con éxito.")
-            st.rerun()
+with st.sidebar.expander("➕ Crear Nuevo Módulo"):[cite: 6]
+    nuevo_mod_nom = st.text_input("Nombre del nuevo módulo:")[cite: 6]
+    if st.button("Crear Módulo"):[cite: 6]
+        if nuevo_mod_nom.strip() and nuevo_mod_nom not in db["modulos"]:[cite: 6]
+            db["modulos"][nuevo_mod_nom] = {"carpetas": {}}[cite: 6]
+            guardar_estado(db)[cite: 6]
+            st.success("Módulo creado con éxito.")[cite: 6]
+            st.rerun()[cite: 6]
 
 # --- HEADER BRAND ---
-tz_cl = pytz.timezone("America/Santiago")
-hora_actual = datetime.now(tz_cl).strftime("%d/%m/%Y | %H:%M:%S")
+tz_cl = pytz.timezone("America/Santiago")[cite: 6]
+hora_actual = datetime.now(tz_cl).strftime("%d/%m/%Y | %H:%M:%S")[cite: 6]
 
 st.markdown(f"""
 <div class='brand-navbar'>
@@ -378,17 +399,17 @@ st.markdown(f"""
     </div>
     <div style='font-size:0.88rem; font-weight:600;'>🇨🇱 {hora_actual}</div>
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True)[cite: 6]
 
-pestañas_principales = st.tabs(["📁 Mis Carpetas & Clases", "🎙️ Grabaciones Originales"])
+pestañas_principales = st.tabs(["📁 Mis Carpetas & Clases", "🎙️ Grabaciones Originales"])[cite: 6]
 
 # ==========================================
 # 1. MIS CARPETAS & CLASES
 # ==========================================
-with pestañas_principales[0]:
-    carpetas_modulo = db["modulos"][modulo_actual]["carpetas"]
-    total_carpetas = len(carpetas_modulo)
-    total_clases = sum(len(c.get("clases", [])) for c in carpetas_modulo.values())
+with pestañas_principales[0]:[cite: 6]
+    carpetas_modulo = db["modulos"][modulo_actual]["carpetas"][cite: 6]
+    total_carpetas = len(carpetas_modulo)[cite: 6]
+    total_clases = sum(len(c.get("clases", [])) for c in carpetas_modulo.values())[cite: 6]
     
     st.markdown(f"""
     <div class='welcome-card'>
@@ -401,54 +422,54 @@ with pestañas_principales[0]:
         <div class='stat-card-3'><div class='stat-value'>{len(db['grabaciones'])}</div><div class='stat-label'>Audios Grabados</div></div>
         <div class='stat-card-4'><div class='stat-value'>⚡ En Vivo</div><div class='stat-label'>Botones Nativos</div></div>
     </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)[cite: 6]
 
-    with st.expander("➕ Crear Nueva Carpeta de Materia en " + modulo_actual, expanded=(total_carpetas == 0)):
-        col_c1, col_c2 = st.columns([2, 1])
+    with st.expander("➕ Crear Nueva Carpeta de Materia en " + modulo_actual, expanded=(total_carpetas == 0)):[cite: 6]
+        col_c1, col_c2 = st.columns([2, 1])[cite: 6]
         with col_c1:
-            nom_carpeta = st.text_input("Nombre de la Materia / Ramo:", placeholder="Ej. Taller de Intervención Social")
+            nom_carpeta = st.text_input("Nombre de la Materia / Ramo:", placeholder="Ej. Taller de Intervención Social")[cite: 6]
         with col_c2:
-            desc_carpeta = st.text_input("Profesor / Descripción breve:")
+            desc_carpeta = st.text_input("Profesor / Descripción breve:")[cite: 6]
         
-        if st.button("Crear Carpeta de Materia"):
-            if nom_carpeta.strip():
-                if nom_carpeta not in carpetas_modulo:
+        if st.button("Crear Carpeta de Materia"):[cite: 6]
+            if nom_carpeta.strip():[cite: 6]
+                if nom_carpeta not in carpetas_modulo:[cite: 6]
                     carpetas_modulo[nom_carpeta] = {
                         "descripcion": desc_carpeta,
                         "fecha_creacion": datetime.now(tz_cl).strftime("%Y-%m-%d %H:%M"),
                         "clases": []
-                    }
-                    guardar_estado(db)
-                    st.success(f"Carpeta '{nom_carpeta}' agregada al módulo.")
-                    st.rerun()
+                    }[cite: 6]
+                    guardar_estado(db)[cite: 6]
+                    st.success(f"Carpeta '{nom_carpeta}' agregada al módulo.")[cite: 6]
+                    st.rerun()[cite: 6]
                 else:
-                    st.error("Ya existe una carpeta con ese nombre en este módulo.")
+                    st.error("Ya existe una carpeta con ese nombre en este módulo.")[cite: 6]
 
-    st.markdown("---")
+    st.markdown("---")[cite: 6]
 
-    if not carpetas_modulo:
-        st.info(f"Aún no has creado carpetas en el módulo '{modulo_actual}'. Crea la primera materia arriba.")
+    if not carpetas_modulo:[cite: 6]
+        st.info(f"Aún no has creado carpetas en el módulo '{modulo_actual}'. Crea la primera materia arriba.")[cite: 6]
     else:
-        lista_nombres_carpetas = list(carpetas_modulo.keys())
-        tabs_carpetas = st.tabs([f"📂 {nom}" for nom in lista_nombres_carpetas])
+        lista_nombres_carpetas = list(carpetas_modulo.keys())[cite: 6]
+        tabs_carpetas = st.tabs([f"📂 {nom}" for nom in lista_nombres_carpetas])[cite: 6]
 
-        for idx_tab, tab_materia in enumerate(tabs_carpetas):
-            nombre_mat = lista_nombres_carpetas[idx_tab]
-            info_mat = carpetas_modulo[nombre_mat]
+        for idx_tab, tab_materia in enumerate(tabs_carpetas):[cite: 6]
+            nombre_mat = lista_nombres_carpetas[idx_tab][cite: 6]
+            info_mat = carpetas_modulo[nombre_mat][cite: 6]
 
             with tab_materia:
-                st.markdown(f"### 📖 {nombre_mat}")
-                st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
+                st.markdown(f"### 📖 {nombre_mat}")[cite: 6]
+                st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")[cite: 6]
                 
-                nom_sesion_live = st.text_input("Tema / Título de la clase:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"t_live_input_{nombre_mat}")
+                nom_sesion_live = st.text_input("Tema / Título de la clase:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"t_live_input_{nombre_mat}")[cite: 6]
 
-                session_key_borrador = f"live_notes_draft_{modulo_actual}_{nombre_mat}"
-                session_key_last_proc = f"last_processed_audio_sig_{modulo_actual}_{nombre_mat}"
+                session_key_borrador = f"live_notes_draft_{modulo_actual}_{nombre_mat}"[cite: 6]
+                session_key_last_proc = f"last_processed_audio_sig_{modulo_actual}_{nombre_mat}"[cite: 6]
 
-                if session_key_borrador not in st.session_state:
-                    st.session_state[session_key_borrador] = ""
-                if session_key_last_proc not in st.session_state:
-                    st.session_state[session_key_last_proc] = ""
+                if session_key_borrador not in st.session_state:[cite: 6]
+                    st.session_state[session_key_borrador] = ""[cite: 6]
+                if session_key_last_proc not in st.session_state:[cite: 6]
+                    st.session_state[session_key_last_proc] = ""[cite: 6]
 
                 # --- CONTROL NATIVO OFICIAL DE STREAMLIT ---
                 st.markdown("""
@@ -458,45 +479,45 @@ with pestañas_principales[0]:
                         Presiona el micrófono nativo para grabar. Cada vez que captures voz, la IA transcribirá y estructurará automáticamente los apuntes con viñetas y conceptos clave en español latino en el cuadro inferior.
                     </p>
                 </div>
-                """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)[cite: 6]
 
-                c_rec_live, c_up_live = st.columns([1.2, 1.2])
+                c_rec_live, c_up_live = st.columns([1.2, 1.2])[cite: 6]
                 with c_rec_live:
-                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>Grabar con Micrófono Nativo:</p>", unsafe_allow_html=True)
-                    audio_live_in = st.audio_input("Botones Oficiales (Grabar / Pausar / Detener):", key=f"live_audio_in_{modulo_actual}_{nombre_mat}")
+                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>Grabar con Micrófono Nativo:</p>", unsafe_allow_html=True)[cite: 6]
+                    audio_live_in = st.audio_input("Botones Oficiales (Grabar / Pausar / Detener):", key=f"live_audio_in_{modulo_actual}_{nombre_mat}")[cite: 6]
 
                 with c_up_live:
-                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>O Cargar Archivo de Audio:</p>", unsafe_allow_html=True)
-                    uploaded_live_in = st.file_uploader("Formatos (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"live_up_in_{modulo_actual}_{nombre_mat}")
+                    st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:6px;'>O Cargar Archivo de Audio:</p>", unsafe_allow_html=True)[cite: 6]
+                    uploaded_live_in = st.file_uploader("Formatos (.wav, .mp3, .m4a):", type=["wav", "mp3", "m4a"], key=f"live_up_in_{modulo_actual}_{nombre_mat}")[cite: 6]
 
-                audio_bytes_capturados = None
-                ext_capturado = "wav"
+                audio_bytes_capturados = None[cite: 6]
+                ext_capturado = "wav"[cite: 6]
 
-                if audio_live_in is not None:
-                    audio_bytes_capturados = audio_live_in.getvalue()
-                    ext_capturado = "wav"
-                elif uploaded_live_in is not None:
-                    audio_bytes_capturados = uploaded_live_in.getvalue()
-                    ext_capturado = uploaded_live_in.name.split(".")[-1].lower()
+                if audio_live_in is not None:[cite: 6]
+                    audio_bytes_capturados = audio_live_in.getvalue()[cite: 6]
+                    ext_capturado = "wav"[cite: 6]
+                elif uploaded_live_in is not None:[cite: 6]
+                    audio_bytes_capturados = uploaded_live_in.getvalue()[cite: 6]
+                    ext_capturado = uploaded_live_in.name.split(".")[-1].lower()[cite: 6]
 
                 # --- PIPELINE REACTIVO CONTINUO ---
-                if audio_bytes_capturados is not None:
-                    audio_sig = f"{len(audio_bytes_capturados)}_{hash(audio_bytes_capturados[:64])}"
-                    if audio_sig != st.session_state[session_key_last_proc]:
-                        client = obtener_cliente_ia()
-                        if not client:
-                            st.error("⚠️ Clave GROQ_API_KEY no configurada en Secrets de Streamlit.")
+                if audio_bytes_capturados is not None:[cite: 6]
+                    audio_sig = f"{len(audio_bytes_capturados)}_{hash(audio_bytes_capturados[:64])}"[cite: 6]
+                    if audio_sig != st.session_state[session_key_last_proc]:[cite: 6]
+                        client = obtener_cliente_ia()[cite: 6]
+                        if not client:[cite: 6]
+                            st.error("⚠️ Clave GROQ_API_KEY no configurada en Secrets de Streamlit.")[cite: 6]
                         else:
-                            with st.spinner("⚡ Transcribiendo con Whisper y estructurando apuntes en vivo..."):
+                            with st.spinner("⚡ Transcribiendo con Whisper y estructurando apuntes en vivo..."):[cite: 6]
                                 try:
-                                    audio_buffer = io.BytesIO(audio_bytes_capturados)
-                                    audio_buffer.name = f"audio_temp.{ext_capturado}"
+                                    audio_buffer = io.BytesIO(audio_bytes_capturados)[cite: 6]
+                                    audio_buffer.name = f"audio_temp.{ext_capturado}"[cite: 6]
                                     transcripcion = client.audio.transcriptions.create(
                                         model=MODELO_WHISPER,
                                         file=audio_buffer,
                                         language="es"
-                                    )
-                                    texto_transcrito = transcripcion.text
+                                    )[cite: 6]
+                                    texto_transcrito = transcripcion.text[cite: 6]
 
                                     apuntes_generados = estructurar_apuntes_groq(
                                         client=client,
@@ -504,16 +525,16 @@ with pestañas_principales[0]:
                                         materia=nombre_mat,
                                         titulo=nom_sesion_live,
                                         borrador_previo=st.session_state[session_key_borrador]
-                                    )
+                                    )[cite: 6]
 
-                                    st.session_state[session_key_borrador] = apuntes_generados
-                                    st.session_state[session_key_last_proc] = audio_sig
+                                    st.session_state[session_key_borrador] = apuntes_generados[cite: 6]
+                                    st.session_state[session_key_last_proc] = audio_sig[cite: 6]
 
                                     # Guardado en grabaciones originales
-                                    n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_capturado}"
-                                    r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)
-                                    with open(r_dest, "wb") as f_raw:
-                                        f_raw.write(audio_bytes_capturados)
+                                    n_aud_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{nombre_mat}.{ext_capturado}"[cite: 6]
+                                    r_dest = os.path.join(DIR_AUDIO_RAW, n_aud_name)[cite: 6]
+                                    with open(r_dest, "wb") as f_raw:[cite: 6]
+                                        f_raw.write(audio_bytes_capturados)[cite: 6]
                                     
                                     db["grabaciones"].append({
                                         "titulo": nom_sesion_live if nom_sesion_live.strip() else f"Grabación {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}",
@@ -521,61 +542,61 @@ with pestañas_principales[0]:
                                         "modulo": modulo_actual,
                                         "fecha": datetime.now(tz_cl).strftime("%Y-%m-%d %H:%M"),
                                         "ruta": r_dest
-                                    })
-                                    guardar_estado(db)
-                                    st.success("✅ ¡Apuntes redactados y estructurados con éxito!")
+                                    })[cite: 6]
+                                    guardar_estado(db)[cite: 6]
+                                    st.success("✅ ¡Apuntes redactados y estructurados con éxito!")[cite: 6]
                                 except Exception as e:
-                                    st.error(f"Error procesando con Groq: {e}")
+                                    st.error(f"Error procesando con Groq: {e}")[cite: 6]
 
                 # --- CUADRO EN VIVO: APUNTES ESTRUCTURADOS ---
-                st.markdown("##### 📝 Cuadro de Apuntes Estructurados en Vivo (Español Latino):")
-                if st.session_state[session_key_borrador]:
-                    st.markdown(f"<div class='live-notes-box'>{st.session_state[session_key_borrador]}</div>", unsafe_allow_html=True)
+                st.markdown("##### 📝 Cuadro de Apuntes Estructurados en Vivo (Español Latino):")[cite: 6]
+                if st.session_state[session_key_borrador]:[cite: 6]
+                    st.markdown(f"<div class='live-notes-box'>{st.session_state[session_key_borrador]}</div>", unsafe_allow_html=True)[cite: 6]
 
-                    c_save1, c_save2 = st.columns([2, 1])
+                    c_save1, c_save2 = st.columns([2, 1])[cite: 6]
                     with c_save1:
-                        if st.button("💾 Guardar Clase en Cuaderno Permanente", key=f"btn_save_perm_{nombre_mat}"):
-                            titulo_final = nom_sesion_live.strip() if nom_sesion_live.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"
+                        if st.button("💾 Guardar Clase en Cuaderno Permanente", key=f"btn_save_perm_{nombre_mat}"):[cite: 6]
+                            titulo_final = nom_sesion_live.strip() if nom_sesion_live.strip() else f"Clase del {datetime.now(tz_cl).strftime('%d/%m/%Y %H:%M')}"[cite: 6]
                             info_mat["clases"].append({
                                 "id": f"clase_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                                 "titulo": titulo_final,
                                 "fecha": datetime.now(tz_cl).strftime("%d/%m/%Y %H:%M"),
                                 "contenido": st.session_state[session_key_borrador],
                                 "chat": []
-                            })
-                            guardar_estado(db)
-                            st.session_state[session_key_borrador] = ""
-                            st.session_state[session_key_last_proc] = ""
-                            st.success("¡Clase archivada exitosamente en tu cuaderno permanente!")
-                            st.rerun()
+                            })[cite: 6]
+                            guardar_estado(db)[cite: 6]
+                            st.session_state[session_key_borrador] = ""[cite: 6]
+                            st.session_state[session_key_last_proc] = ""[cite: 6]
+                            st.success("¡Clase archivada exitosamente en tu cuaderno permanente!")[cite: 6]
+                            st.rerun()[cite: 6]
 
                     with c_save2:
-                        if st.button("🔄 Reiniciar Borrador en Vivo", key=f"btn_reset_live_{nombre_mat}"):
-                            st.session_state[session_key_borrador] = ""
-                            st.session_state[session_key_last_proc] = ""
-                            st.rerun()
+                        if st.button("🔄 Reiniciar Borrador en Vivo", key=f"btn_reset_live_{nombre_mat}"):[cite: 6]
+                            st.session_state[session_key_borrador] = ""[cite: 6]
+                            st.session_state[session_key_last_proc] = ""[cite: 6]
+                            st.rerun()[cite: 6]
                 else:
                     st.markdown("""
                     <div class='live-notes-box' style='color:#94a3b8; font-style:italic;'>
                         Presiona el botón nativo del micrófono arriba para empezar a grabar. La IA redactará aquí tus apuntes organizados en viñetas, conceptos clave y explicaciones en español latino sobre la marcha...
                     </div>
-                    """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)[cite: 6]
 
-                st.markdown("---")
+                st.markdown("---")[cite: 6]
 
                 # --- HISTORIAL DE CLASES GUARDADAS EN LA MATERIA ---
-                st.markdown("#### 📚 Cuaderno de Apuntes Guardados")
-                clases_guardadas = info_mat.get("clases", [])
+                st.markdown("#### 📚 Cuaderno de Apuntes Guardados")[cite: 6]
+                clases_guardadas = info_mat.get("clases", [])[cite: 6]
                 
-                if not clases_guardadas:
-                    st.info("Aún no has archivado clases en esta materia. Graba con el botón de arriba para comenzar.")
+                if not clases_guardadas:[cite: 6]
+                    st.info("Aún no has archivado clases en esta materia. Graba con el botón de arriba para comenzar.")[cite: 6]
                 else:
-                    for idx_c, clase in enumerate(reversed(clases_guardadas)):
-                        idx_real = len(clases_guardadas) - 1 - idx_c
-                        with st.expander(f"📝 {clase['titulo']} — ({clase['fecha']})", expanded=(idx_c == 0)):
-                            c_hist_content, c_hist_actions = st.columns([4, 1])
+                    for idx_c, clase in enumerate(reversed(clases_guardadas)):[cite: 6]
+                        idx_real = len(clases_guardadas) - 1 - idx_c[cite: 6]
+                        with st.expander(f"📝 {clase['titulo']} — ({clase['fecha']})", expanded=(idx_c == 0)):[cite: 6]
+                            c_hist_content, c_hist_actions = st.columns([4, 1])[cite: 6]
                             with c_hist_content:
-                                st.markdown(clase["contenido"])
+                                st.markdown(clase["contenido"])[cite: 6]
                             
                             with c_hist_actions:
                                 st.download_button(
@@ -583,30 +604,30 @@ with pestañas_principales[0]:
                                     data=clase["contenido"],
                                     file_name=f"{clase['titulo']}_Apuntes.txt",
                                     key=f"dl_txt_{clase['id']}"
-                                )
-                                if st.button("🗑️ Eliminar Clase", key=f"del_cls_{clase['id']}"):
-                                    clases_guardadas.pop(idx_real)
-                                    guardar_estado(db)
-                                    st.success("Clase eliminada.")
-                                    st.rerun()
+                                )[cite: 6]
+                                if st.button("🗑️ Eliminar Clase", key=f"del_cls_{clase['id']}"):[cite: 6]
+                                    clases_guardadas.pop(idx_real)[cite: 6]
+                                    guardar_estado(db)[cite: 6]
+                                    st.success("Clase eliminada.")[cite: 6]
+                                    st.rerun()[cite: 6]
 
-                            st.markdown("---")
+                            st.markdown("---")[cite: 6]
                             
                             # Tutor Chat
-                            st.markdown(f"##### 💬 Tutor IA: Consultas sobre '{clase['titulo']}'")
-                            historial_chat = clase.get("chat", [])
-                            for mensaje in historial_chat:
-                                if mensaje["rol"] == "user":
-                                    st.markdown(f"**Tú:** {mensaje['texto']}")
+                            st.markdown(f"##### 💬 Tutor IA: Consultas sobre '{clase['titulo']}'")[cite: 6]
+                            historial_chat = clase.get("chat", [])[cite: 6]
+                            for mensaje in historial_chat:[cite: 6]
+                                if mensaje["rol"] == "user":[cite: 6]
+                                    st.markdown(f"**Tú:** {mensaje['texto']}")[cite: 6]
                                 else:
-                                    st.markdown(f"**🤖 Tutor IA:** {mensaje['texto']}")
+                                    st.markdown(f"**🤖 Tutor IA:** {mensaje['texto']}")[cite: 6]
 
-                            with st.form(f"form_chat_{clase['id']}"):
-                                pregunta_usuario = st.text_input("Haz una pregunta sobre el contenido de esta clase:", placeholder="Ej. ¿Qué autores se citaron?", key=f"inp_chat_{clase['id']}")
-                                if st.form_submit_button("Consultar al Tutor") and pregunta_usuario.strip():
-                                    client = obtener_cliente_ia()
-                                    if client:
-                                        with st.spinner("Pensando respuesta..."):
+                            with st.form(f"form_chat_{clase['id']}"):[cite: 6]
+                                pregunta_usuario = st.text_input("Haz una pregunta sobre el contenido de esta clase:", placeholder="Ej. ¿Qué autores se citaron?", key=f"inp_chat_{clase['id']}")[cite: 6]
+                                if st.form_submit_button("Consultar al Tutor") and pregunta_usuario.strip():[cite: 6]
+                                    client = obtener_cliente_ia()[cite: 6]
+                                    if client:[cite: 6]
+                                        with st.spinner("Pensando respuesta..."):[cite: 6]
                                             try:
                                                 resp_tutor = estructurar_apuntes_groq(
                                                     client=client,
@@ -614,58 +635,58 @@ with pestañas_principales[0]:
                                                     materia=nombre_mat,
                                                     titulo=clase['titulo'],
                                                     borrador_previo=clase['contenido']
-                                                )
-                                                if "chat" not in clases_guardadas[idx_real]:
-                                                    clases_guardadas[idx_real]["chat"] = []
+                                                )[cite: 6]
+                                                if "chat" not in clases_guardadas[idx_real]:[cite: 6]
+                                                    clases_guardadas[idx_real]["chat"] = [][cite: 6]
                                                 
-                                                clases_guardadas[idx_real]["chat"].append({"rol": "user", "texto": pregunta_usuario})
-                                                clases_guardadas[idx_real]["chat"].append({"rol": "ai", "texto": resp_tutor})
-                                                guardar_estado(db)
-                                                st.rerun()
+                                                clases_guardadas[idx_real]["chat"].append({"rol": "user", "texto": pregunta_usuario})[cite: 6]
+                                                clases_guardadas[idx_real]["chat"].append({"rol": "ai", "texto": resp_tutor})[cite: 6]
+                                                guardar_estado(db)[cite: 6]
+                                                st.rerun()[cite: 6]
                                             except Exception as e:
-                                                st.error(f"Error en tutor: {e}")
+                                                st.error(f"Error en tutor: {e}")[cite: 6]
 
 # ==========================================
 # 2. GRABACIONES ORIGINALES
 # ==========================================
-with pestañas_principales[1]:
+with pestañas_principales[1]:[cite: 6]
     st.markdown("""
     <div class='app-card'>
         <h3 style='margin:0 0 6px 0; color:#5b21b6;'>🎙️ Repositorio Central de Grabaciones Originales</h3>
         <p style='margin:0; color:#64748b;'>Todas las grabaciones de voz se almacenan de forma segura aquí para su reproducción o descarga.</p>
     </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)[cite: 6]
 
-    grabaciones = db.get("grabaciones", [])
-    if not grabaciones:
-        st.info("No hay grabaciones de audio guardadas todavía.")
+    grabaciones = db.get("grabaciones", [])[cite: 6]
+    if not grabaciones:[cite: 6]
+        st.info("No hay grabaciones de audio guardadas todavía.")[cite: 6]
     else:
-        for idx_g, g in enumerate(reversed(grabaciones)):
-            idx_real_g = len(grabaciones) - 1 - idx_g
-            with st.container():
-                c_g1, c_g2 = st.columns([4, 1])
-                with c_g1:
-                    st.markdown(f"#### 🎵 {g['titulo']}")
-                    st.caption(f"Materia: **{g['materia']}** | Módulo: **{g.get('modulo', 'General')}** | Grabado: {g['fecha']}")
-                    if os.path.exists(g["ruta"]):
-                        with open(g["ruta"], "rb") as f_play:
-                            st.audio(f_play.read())
+        for idx_g, g in enumerate(reversed(grabaciones)):[cite: 6]
+            idx_real_g = len(grabaciones) - 1 - idx_g[cite: 6]
+            with st.container():[cite: 6]
+                c_g1, c_g2 = st.columns([4, 1])[cite: 6]
+                with c_g1:[cite: 6]
+                    st.markdown(f"#### 🎵 {g['titulo']}")[cite: 6]
+                    st.caption(f"Materia: **{g['materia']}** | Módulo: **{g.get('modulo', 'General')}** | Grabado: {g['fecha']}")[cite: 6]
+                    if os.path.exists(g["ruta"]):[cite: 6]
+                        with open(g["ruta"], "rb") as f_play:[cite: 6]
+                            st.audio(f_play.read())[cite: 6]
                     else:
-                        st.error("Archivo físico no encontrado.")
-                with c_g2:
-                    if os.path.exists(g["ruta"]):
-                        with open(g["ruta"], "rb") as f_dl:
+                        st.error("Archivo físico no encontrado.")[cite: 6]
+                with c_g2:[cite: 6]
+                    if os.path.exists(g["ruta"]):[cite: 6]
+                        with open(g["ruta"], "rb") as f_dl:[cite: 6]
                             st.download_button(
                                 "📥 Descargar Audio",
                                 data=f_dl.read(),
                                 file_name=os.path.basename(g["ruta"]),
                                 key=f"dl_raw_{idx_real_g}"
-                            )
-                    if st.button("🗑️ Eliminar Audio", key=f"del_raw_{idx_real_g}"):
-                        if os.path.exists(g["ruta"]):
-                            os.remove(g["ruta"])
-                        grabaciones.pop(idx_real_g)
-                        guardar_estado(db)
-                        st.success("Grabación eliminada.")
-                        st.rerun()
-                st.markdown("---")
+                            )[cite: 6]
+                    if st.button("🗑️ Eliminar Audio", key=f"del_raw_{idx_real_g}"):[cite: 6]
+                        if os.path.exists(g["ruta"]):[cite: 6]
+                            os.remove(g["ruta"])[cite: 6]
+                        grabaciones.pop(idx_real_g)[cite: 6]
+                        guardar_estado(db)[cite: 6]
+                        st.success("Grabación eliminada.")[cite: 6]
+                        st.rerun()[cite: 6]
+                st.markdown("---")[cite: 6]
