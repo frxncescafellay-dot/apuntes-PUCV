@@ -108,13 +108,13 @@ def estructurar_apuntes_groq(client, texto_transcrito, materia, titulo, borrador
 
     raise Exception(f"Fallo al conectar con los modelos de Groq. Detalle: {ultimo_error}")
 
-# --- ESTILOS VISUALES SKILLPATH: LAVANDA CLARO Y MORADO ---
+# --- ESTILOS VISUALES SKILLPATH: CONTRASTE MEJORADO ---
 st.markdown("""
 <style>
-/* Fondo principal y tipografia */
+/* Fondo general lavanda-slate para contraste con tarjetas blancas */
 html, body, [class*="css"], .stApp { 
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important; 
-    background-color: #f3e8ff !important;
+    background-color: #e9e5f5 !important;
     color: #1e1b4b !important;
 }
 
@@ -186,15 +186,16 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
     background-color: #c084fc !important;
 }
 
-/* Pestañas inactivas: fondo lavanda suave, texto morado oscuro */
+/* Pestañas inactivas: fondo lavanda claro visible, texto morado */
 [data-testid="stTabs"] button[role="tab"],
 [data-testid="stTabs"] button[data-baseweb="tab"],
 div[data-testid="stTabs"] button {
-    background-color: #ede9fe !important;
-    border: 1.5px solid #d8b4fe !important;
+    background-color: #ffffff !important;
+    border: 1.5px solid #c4b5fd !important;
     border-bottom: none !important;
     border-radius: 10px 10px 0 0 !important;
     padding: 10px 20px !important;
+    box-shadow: 0 2px 6px rgba(109, 36, 236, 0.06) !important;
     opacity: 1 !important;
 }
 
@@ -233,13 +234,13 @@ div[data-testid="stTabs"] button[aria-selected="true"] {
 
 [data-testid="stTabs"] button[role="tab"]:hover,
 [data-testid="stTabs"] button[data-baseweb="tab"]:hover {
-    background-color: #ddd6fe !important;
+    background-color: #ede9fe !important;
 }
 
 /* DESPLEGABLES */
 div[data-testid="stExpander"] {
     background-color: #ffffff !important;
-    border: 1.5px solid #d8b4fe !important;
+    border: 1.5px solid #c4b5fd !important;
     border-radius: 12px !important;
     box-shadow: 0 4px 14px rgba(109, 36, 236, 0.08) !important;
     margin-bottom: 16px !important;
@@ -258,7 +259,7 @@ div[data-testid="stExpander"] summary * {
 
 /* Inputs y Selectores */
 input[type="text"], input[type="password"] {
-    background-color: #faf5ff !important;
+    background-color: #ffffff !important;
     color: #1e1b4b !important;
     border: 1.5px solid #c084fc !important;
     border-radius: 8px !important;
@@ -302,7 +303,7 @@ div[data-testid="stDownloadButton"]>button {
 
 /* GRABADOR DE AUDIO NATIVO */
 div[data-testid="stAudioInput"] {
-    background-color: #faf5ff !important;
+    background-color: #ffffff !important;
     border: 2px dashed #8b5cf6 !important;
     border-radius: 12px !important;
     padding: 14px !important;
@@ -335,11 +336,11 @@ div[data-testid="stAudioInput"] * {
 
 .app-card {
     background: #ffffff;
-    border: 1px solid #e9d5ff;
+    border: 1px solid #d8b4fe;
     border-radius: 14px;
     padding: 22px;
     margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 4px 14px rgba(109, 36, 236, 0.06);
 }
 
 .live-notes-box {
