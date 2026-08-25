@@ -169,33 +169,33 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
 button[data-baseweb="tab"] {
     font-size: 1.05rem !important;
     font-weight: 800 !important;
-    color: #000000 !important; /* Negro de alto contraste */
     padding: 10px 18px !important;
     border-radius: 8px 8px 0 0 !important;
-    transition: all 0.2s ease-in-out !important;
 }
 
-button[data-baseweb="tab"] * {
+button[data-baseweb="tab"]:not([aria-selected="true"]),
+button[data-baseweb="tab"]:not([aria-selected="true"]) *,
+[data-testid="stTabs"] button:not([aria-selected="true"]) p,
+[data-testid="stTabs"] button:not([aria-selected="true"]) span,
+[data-testid="stTabs"] button:not([aria-selected="true"]) div {
     color: #000000 !important;
     font-weight: 800 !important;
+    opacity: 1 !important;
 }
 
-button[data-baseweb="tab"]:hover {
+button[data-baseweb="tab"]:not([aria-selected="true"]):hover,
+button[data-baseweb="tab"]:not([aria-selected="true"]):hover * {
     color: #6214c7 !important;
-    background-color: rgba(139, 92, 246, 0.12) !important;
+    background-color: rgba(139, 92, 246, 0.1) !important;
 }
 
-button[data-baseweb="tab"]:hover * {
+button[data-baseweb="tab"][aria-selected="true"],
+button[data-baseweb="tab"][aria-selected="true"] *,
+[data-testid="stTabs"] button[aria-selected="true"] p,
+[data-testid="stTabs"] button[aria-selected="true"] span {
     color: #6214c7 !important;
-}
-
-button[data-baseweb="tab"][aria-selected="true"] {
-    color: #6214c7 !important; /* Morado marca para seleccionada */
     border-bottom: 3.5px solid #6214c7 !important;
-}
-
-button[data-baseweb="tab"][aria-selected="true"] * {
-    color: #6214c7 !important;
+    font-weight: 800 !important;
 }
 
 /* DESPLEGABLES */
@@ -332,8 +332,58 @@ div[data-testid="stAudioInput"] * {
 .live-notes-box::-webkit-scrollbar-thumb:hover {
     background: #6214c7;
 }
+
+/* ESTILOS DE LA PANTALLA DE ACCESO */
+.login-container {
+    background: #ffffff;
+    border: 2px solid #c4b5fd;
+    border-radius: 18px;
+    padding: 36px 32px;
+    box-shadow: 0 10px 30px rgba(109, 36, 236, 0.15);
+    margin-top: 40px;
+}
 </style>
 """, unsafe_allow_html=True)
+
+# --- USUARIOS PERMITIDOS ---
+USUARIOS_ACCESO = {
+    "Francesca Fellay": "1953",
+    "gerente": "gerente"
+}
+
+# --- CONTROL DE ACCESO (LOGIN) ---
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
+    st.session_state.usuario_activo = None
+
+if not st.session_state.autenticado:
+    c_izq, c_cen, c_der = st.columns([1, 1.4, 1])
+    with c_cen:
+        st.markdown("""
+        <div class='login-container'>
+            <div style='text-align: center; margin-bottom: 20px;'>
+                <div style='font-size: 3rem; margin-bottom: 6px;'>⚡</div>
+                <h2 style='margin: 0; color: #4c1d95 !important;'>SkillPath</h2>
+                <p style='margin: 4px 0 0 0; color: #64748b; font-size: 0.92rem;'>Plataforma de Apuntes Inteligentes en Vivo</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        with st.form("form_acceso_skillpath"):
+            usr_input = st.text_input("Usuario:", placeholder="Ej. Francesca Fellay o gerente")
+            pin_input = st.text_input("PIN / Contraseña:", type="password", placeholder="Ingresa tu clave de acceso")
+            submit_btn = st.form_submit_button("Ingresar a la Plataforma", use_container_width=True)
+            
+            if submit_btn:
+                usr_clean = usr_input.strip()
+                if usr_clean in USUARIOS_ACCESO and USUARIOS_ACCESO[usr_clean] == pin_input:
+                    st.session_state.autenticado = True
+                    st.session_state.usuario_activo = usr_clean
+                    st.rerun()
+                else:
+                    st.error("Credenciales incorrectas. Verifique el usuario y el PIN ingresado.")
+                    
+        st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
 
 # --- GESTOR DE PERSISTENCIA ---
 def cargar_estado():
@@ -437,7 +487,8 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-st.sidebar.markdown(f"<h3 style='margin:0; font-size:1.15rem; color:#ffffff;'>{perfil.get('nombre', 'Francesca Fellay')}</h3>", unsafe_allow_html=True)
+nombre_mostrado = perfil.get('nombre', 'Francesca Fellay') if st.session_state.usuario_activo == "Francesca Fellay" else "Gerencia General"
+st.sidebar.markdown(f"<h3 style='margin:0; font-size:1.15rem; color:#ffffff;'>{nombre_mostrado}</h3>", unsafe_allow_html=True)
 st.sidebar.markdown(f"<p style='margin:2px 0; font-size:0.85rem; color:#ede9fe;'>🏛️ {perfil.get('universidad', 'Pontificia Universidad Católica de Valparaíso')}</p>", unsafe_allow_html=True)
 st.sidebar.markdown(f"<p style='margin:2px 0 10px 0; font-size:0.85rem; color:#ede9fe;'>📍 {perfil.get('ubicacion', 'Valparaíso, Chile')}</p>", unsafe_allow_html=True)
 
@@ -461,6 +512,11 @@ with st.sidebar.expander("⚙️ Editar Datos del Perfil"):
         st.rerun()
 
 st.sidebar.markdown("<hr style='border:0.5px solid rgba(255,255,255,0.2); margin:16px 0;'>", unsafe_allow_html=True)
+
+if st.sidebar.button("🚪 Cerrar Sesión", use_container_width=True):
+    st.session_state.autenticado = False
+    st.session_state.usuario_activo = None
+    st.rerun()
 
 # --- SELECTOR DE MÓDULO ---
 st.sidebar.markdown("### 📚 Selector de Módulo")
@@ -507,7 +563,7 @@ with pestañas_principales[0]:
     
     st.markdown(f"""
     <div class='welcome-card'>
-        <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {db['perfil']['nombre']}! 👋</h2>
+        <h2 style='margin:0 0 6px 0;'>¡Bienvenida de vuelta, {nombre_mostrado}! 👋</h2>
         <p style='margin:0; opacity:0.9;'>Módulo actual: <b>{modulo_actual}</b>. Transcripción y viñetas automáticas en <b>Español Latino</b> con botones nativos.</p>
     </div>
     <div class='stats-grid'>
