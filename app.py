@@ -165,7 +165,7 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
     font-weight: 700 !important;
 }
 
-/* TABS / PESTAÑAS - COLOR NEGRO PARA PESTAÑAS NO SELECCIONADAS */
+/* TABS / PESTAÑAS */
 button[data-baseweb="tab"] {
     font-size: 1.05rem !important;
     font-weight: 800 !important;
@@ -219,7 +219,7 @@ div[data-testid="stExpander"] summary * {
 }
 
 /* Inputs y Selectores */
-section[data-testid="stSidebar"] input[type="text"] {
+input[type="text"], input[type="password"] {
     background-color: #ede9fe !important;
     color: #2e1065 !important;
     border: 1.5px solid #c4b5fd !important;
@@ -238,14 +238,19 @@ section[data-testid="stSidebar"] div[data-baseweb="select"] * {
     font-weight: 750 !important;
 }
 
-/* Botones */
-.stButton>button {
+/* Botones Principales y Formularios */
+.stButton>button, div[data-testid="stFormSubmitButton"]>button {
     background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%) !important;
     color: #ffffff !important;
     border: none !important;
     border-radius: 10px !important;
-    padding: 9px 22px !important;
-    font-weight: 750 !important;
+    padding: 10px 24px !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 14px rgba(109, 36, 236, 0.25) !important;
+}
+.stButton>button p, div[data-testid="stFormSubmitButton"]>button p {
+    color: #ffffff !important;
+    font-weight: 800 !important;
 }
 
 div[data-testid="stDownloadButton"]>button {
@@ -299,7 +304,6 @@ div[data-testid="stAudioInput"] * {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
-/* CUADRO DE APUNTES CON SCROLLBAR MORADA */
 .live-notes-box {
     background-color: #ffffff;
     border: 2px solid #8b5cf6;
@@ -333,14 +337,14 @@ div[data-testid="stAudioInput"] * {
     background: #6214c7;
 }
 
-/* ESTILOS DE LA PANTALLA DE ACCESO */
+/* PANTALLA DE ACCESO */
 .login-container {
     background: #ffffff;
     border: 2px solid #c4b5fd;
     border-radius: 18px;
-    padding: 36px 32px;
-    box-shadow: 0 10px 30px rgba(109, 36, 236, 0.15);
-    margin-top: 40px;
+    padding: 38px 34px;
+    box-shadow: 0 12px 32px rgba(109, 36, 236, 0.15);
+    margin-top: 50px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -357,20 +361,25 @@ if "autenticado" not in st.session_state:
     st.session_state.usuario_activo = None
 
 if not st.session_state.autenticado:
-    c_izq, c_cen, c_der = st.columns([1, 1.4, 1])
+    c_izq, c_cen, c_der = st.columns([1, 1.3, 1])
     with c_cen:
         st.markdown("""
         <div class='login-container'>
-            <div style='text-align: center; margin-bottom: 20px;'>
-                <div style='font-size: 3rem; margin-bottom: 6px;'>⚡</div>
-                <h2 style='margin: 0; color: #4c1d95 !important;'>SkillPath</h2>
-                <p style='margin: 4px 0 0 0; color: #64748b; font-size: 0.92rem;'>Plataforma de Apuntes Inteligentes en Vivo</p>
+            <div style='text-align: center; margin-bottom: 22px;'>
+                <div style='font-size: 3.2rem; margin-bottom: 4px;'>⚡</div>
+                <h2 style='margin: 0; color: #4c1d95 !important; font-size: 1.9rem;'>SkillPath</h2>
+                <p style='margin: 4px 0 0 0; color: #64748b; font-size: 0.95rem; font-weight: 600;'>Plataforma de Apuntes Inteligentes en Vivo</p>
             </div>
         """, unsafe_allow_html=True)
         
         with st.form("form_acceso_skillpath"):
-            usr_input = st.text_input("Usuario:", placeholder="Ej. Francesca Fellay o gerente")
-            pin_input = st.text_input("PIN / Contraseña:", type="password", placeholder="Ingresa tu clave de acceso")
+            st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:4px;'>Nombre de Usuario:</p>", unsafe_allow_html=True)
+            usr_input = st.text_input("Usuario", label_visibility="collapsed")
+            
+            st.markdown("<p style='color:#3b0764; font-weight:750; margin-bottom:4px; margin-top:12px;'>PIN / Contraseña:</p>", unsafe_allow_html=True)
+            pin_input = st.text_input("PIN", type="password", label_visibility="collapsed")
+            
+            st.markdown("<div style='margin-top: 18px;'></div>", unsafe_allow_html=True)
             submit_btn = st.form_submit_button("Ingresar a la Plataforma", use_container_width=True)
             
             if submit_btn:
@@ -385,42 +394,59 @@ if not st.session_state.autenticado:
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# --- GESTOR DE PERSISTENCIA ---
+# --- GESTOR DE PERSISTENCIA Y RECUPERACION ANTI-HIBERNACION ---
+def sincronizar_y_recuperar_todo(data):
+    # 1. Recuperación y validación de grabaciones físicas de audio
+    rutas_db = {g.get("ruta") for g in data.get("grabaciones", []) if g.get("ruta")}
+    if os.path.exists(DIR_AUDIO_RAW):
+        for arch in os.listdir(DIR_AUDIO_RAW):
+            ruta_f = os.path.join(DIR_AUDIO_RAW, arch)
+            if ruta_f not in rutas_db and os.path.isfile(ruta_f):
+                partes = arch.split("_", 2)
+                mat_nombre = partes[2].rsplit(".", 1)[0] if len(partes) > 2 else "Materia General"
+                data["grabaciones"].append({
+                    "titulo": f"Grabación ({arch})",
+                    "materia": mat_nombre,
+                    "modulo": "6to Semestre TSL",
+                    "fecha": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "ruta": ruta_f
+                })
+    return data
+
 def cargar_estado():
+    data_inicial = {
+        "perfil": {
+            "nombre": "Francesca Fellay",
+            "universidad": "Pontificia Universidad Católica de Valparaíso",
+            "ubicacion": "Valparaíso, Chile",
+            "avatar": ""
+        },
+        "modulos": {
+            "6to Semestre TSL": {
+                "carpetas": {}
+            }
+        },
+        "grabaciones": []
+    }
+    
     if not os.path.exists(FILE_DB):
-        data_inicial = {
-            "perfil": {
-                "nombre": "Francesca Fellay",
-                "universidad": "Pontificia Universidad Católica de Valparaíso",
-                "ubicacion": "Valparaíso, Chile",
-                "avatar": ""
-            },
-            "modulos": {
-                "6to Semestre TSL": {
-                    "carpetas": {}
-                }
-            },
-            "grabaciones": []
-        }
-        guardar_estado(data_inicial)
-        return data_inicial
+        data = sincronizar_y_recuperar_todo(data_inicial)
+        guardar_estado(data)
+        return data
     
     with open(FILE_DB, "r", encoding="utf-8") as f:
         try:
             data = json.load(f)
         except Exception:
-            data = {"perfil": {"nombre": "Francesca Fellay", "universidad": "Pontificia Universidad Católica de Valparaíso", "ubicacion": "Valparaíso, Chile", "avatar": ""}, "modulos": {"6to Semestre TSL": {"carpetas": {}}}, "grabaciones": []}
+            data = data_inicial
     
-    if "modulos" in data:
-        if "6to semestre TSL" in data["modulos"]:
-            contenido_viejo = data["modulos"].pop("6to semestre TSL")
-            if "6to Semestre TSL" not in data["modulos"]:
-                data["modulos"]["6to Semestre TSL"] = contenido_viejo
-            guardar_estado(data)
-    else:
-        data["modulos"] = {"6to Semestre TSL": {"carpetas": {}}}
-        guardar_estado(data)
+    if "modulos" not in data:
+        data["modulos"] = data_inicial["modulos"]
+    if "grabaciones" not in data:
+        data["grabaciones"] = []
         
+    data = sincronizar_y_recuperar_todo(data)
+    guardar_estado(data)
     return data
 
 def guardar_estado(data):
