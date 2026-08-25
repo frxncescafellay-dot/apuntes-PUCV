@@ -97,7 +97,7 @@ def estructurar_apuntes_groq(client, texto_transcrito, materia, titulo, borrador
                 model=m,
                 messages=[
                     {"role": "system", "content": prompt_sys},
-                    {"role": "user", "content": prompt_user}
+                    {"role": "user", "content": prompt_usuario}
                 ],
                 temperature=0.3
             )
@@ -108,9 +108,10 @@ def estructurar_apuntes_groq(client, texto_transcrito, materia, titulo, borrador
 
     raise Exception(f"Fallo al conectar con los modelos de Groq. Detalle: {ultimo_error}")
 
-# --- ESTILOS VISUALES SKILLPATH ---
+# --- ESTILOS VISUALES SKILLPATH (FORZADO DEFINITIVO DE COLOR EN PESTAÑAS) ---
 st.markdown("""
 <style>
+/* Tipografia y Fondo General */
 html, body, [class*="css"], .stApp { 
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important; 
     background-color: #f4f5fa !important;
@@ -165,56 +166,76 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
     font-weight: 700 !important;
 }
 
-/* --- FORZADO PERMANENTE DE COLOR MORADO EN TODAS LAS PESTAÑAS --- */
-div[data-testid="stTabs"] {
+/* ==========================================================================
+   REGLA DEFINITIVA: COLOR MORADO PERMANENTE EN TODOS LOS TABS / PESTAÑAS
+   ========================================================================== */
+
+/* 1. Contenedor de lista de pestañas */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 8px !important;
     background-color: transparent !important;
+    border-bottom: 2px solid #c4b5fd !important;
+    padding-bottom: 2px !important;
 }
 
-div[data-testid="stTabs"] [data-baseweb="tab-list"] {
-    gap: 6px !important;
-    background-color: transparent !important;
-}
-
-/* PESTAÑAS INACTIVAS: SIEMPRE VISIBLES EN MORADO OSCURO */
-div[data-testid="stTabs"] button[data-baseweb="tab"] {
-    background-color: rgba(139, 92, 246, 0.08) !important;
+/* 2. Botón de pestaña en estado NORMAL (Sin hover, sin seleccionar) */
+[data-testid="stTabs"] button[role="tab"],
+[data-testid="stTabs"] button[data-baseweb="tab"] {
+    background-color: #ede9fe !important;
     border: 1.5px solid #c4b5fd !important;
     border-bottom: none !important;
     border-radius: 10px 10px 0 0 !important;
-    padding: 10px 20px !important;
-    margin-right: 4px !important;
-}
-
-div[data-testid="stTabs"] button[data-baseweb="tab"] p,
-div[data-testid="stTabs"] button[data-baseweb="tab"] span,
-div[data-testid="stTabs"] button[data-baseweb="tab"] div {
-    color: #4c1d95 !important;
-    font-weight: 800 !important;
-    font-size: 1.02rem !important;
+    padding: 10px 22px !important;
     opacity: 1 !important;
     visibility: visible !important;
 }
 
-/* PESTAÑA ACTIVA (SELECCIONADA) */
-div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
-    background-color: #ffffff !important;
-    border-top: 3.5px solid #6214c7 !important;
-    border-left: 1.5px solid #6214c7 !important;
-    border-right: 1.5px solid #6214c7 !important;
-    border-bottom: 2px solid #ffffff !important;
+/* 3. Forzar color morado a TODO el texto interno de pestañas inactivas */
+[data-testid="stTabs"] button[role="tab"] *,
+[data-testid="stTabs"] button[data-baseweb="tab"] *,
+[data-testid="stTabs"] button[role="tab"] p,
+[data-testid="stTabs"] button[role="tab"] span,
+[data-testid="stTabs"] button[role="tab"] div,
+[data-testid="stTabs"] button[data-baseweb="tab"] p,
+[data-testid="stTabs"] button[data-baseweb="tab"] span,
+[data-testid="stTabs"] button[data-baseweb="tab"] div {
+    color: #4c1d95 !important;
+    -webkit-text-fill-color: #4c1d95 !important;
+    font-weight: 800 !important;
+    font-size: 1.05rem !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
-div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p,
-div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] span,
-div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] div {
-    color: #6214c7 !important;
+/* 4. Pestaña SELECCIONADA / ACTIVA */
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
+[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    background-color: #6214c7 !important;
+    border: 1.5px solid #6214c7 !important;
+    border-bottom: none !important;
+}
+
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] *,
+[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] *,
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p,
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] span,
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] div,
+[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p,
+[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] span,
+[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] div {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
     font-weight: 900 !important;
+    opacity: 1 !important;
 }
 
-/* EFECTO HOVER */
-div[data-testid="stTabs"] button[data-baseweb="tab"]:hover {
-    background-color: #ede9fe !important;
+/* 5. Efecto Hover */
+[data-testid="stTabs"] button[role="tab"]:hover,
+[data-testid="stTabs"] button[data-baseweb="tab"]:hover {
+    background-color: #ddd6fe !important;
 }
+
+/* ========================================================================== */
 
 /* DESPLEGABLES */
 div[data-testid="stExpander"] {
