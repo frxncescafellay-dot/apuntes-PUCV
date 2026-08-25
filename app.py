@@ -165,37 +165,40 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
     font-weight: 700 !important;
 }
 
-/* TABS / PESTAÑAS */
+/* --- TABS / PESTAÑAS: COLOR MORADO ALINEADO A LA INTERFAZ PARA INACTIVAS --- */
 button[data-baseweb="tab"] {
     font-size: 1.05rem !important;
     font-weight: 800 !important;
     padding: 10px 18px !important;
     border-radius: 8px 8px 0 0 !important;
+    transition: all 0.2s ease-in-out !important;
 }
 
+/* Pestañas NO seleccionadas (inactivas): Morado institucional nítido */
 button[data-baseweb="tab"]:not([aria-selected="true"]),
 button[data-baseweb="tab"]:not([aria-selected="true"]) *,
 [data-testid="stTabs"] button:not([aria-selected="true"]) p,
 [data-testid="stTabs"] button:not([aria-selected="true"]) span,
 [data-testid="stTabs"] button:not([aria-selected="true"]) div {
-    color: #000000 !important;
+    color: #5b21b6 !important;
     font-weight: 800 !important;
     opacity: 1 !important;
 }
 
 button[data-baseweb="tab"]:not([aria-selected="true"]):hover,
 button[data-baseweb="tab"]:not([aria-selected="true"]):hover * {
-    color: #6214c7 !important;
-    background-color: rgba(139, 92, 246, 0.1) !important;
+    color: #7c24ec !important;
+    background-color: rgba(124, 36, 236, 0.12) !important;
 }
 
+/* Pestaña seleccionada (activa): Morado con línea indicadora */
 button[data-baseweb="tab"][aria-selected="true"],
 button[data-baseweb="tab"][aria-selected="true"] *,
 [data-testid="stTabs"] button[aria-selected="true"] p,
 [data-testid="stTabs"] button[aria-selected="true"] span {
     color: #6214c7 !important;
     border-bottom: 3.5px solid #6214c7 !important;
-    font-weight: 800 !important;
+    font-weight: 900 !important;
 }
 
 /* DESPLEGABLES */
@@ -238,7 +241,7 @@ section[data-testid="stSidebar"] div[data-baseweb="select"] * {
     font-weight: 750 !important;
 }
 
-/* Botones Principales y Formularios */
+/* Botones */
 .stButton>button, div[data-testid="stFormSubmitButton"]>button {
     background: linear-gradient(135deg, #6214c7 0%, #7c24ec 100%) !important;
     color: #ffffff !important;
@@ -304,6 +307,7 @@ div[data-testid="stAudioInput"] * {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
+/* CUADRO DE APUNTES CON SCROLLBAR MORADA */
 .live-notes-box {
     background-color: #ffffff;
     border: 2px solid #8b5cf6;
@@ -396,7 +400,6 @@ if not st.session_state.autenticado:
 
 # --- GESTOR DE PERSISTENCIA Y RECUPERACION ANTI-HIBERNACION ---
 def sincronizar_y_recuperar_todo(data):
-    # 1. Recuperación y validación de grabaciones físicas de audio
     rutas_db = {g.get("ruta") for g in data.get("grabaciones", []) if g.get("ruta")}
     if os.path.exists(DIR_AUDIO_RAW):
         for arch in os.listdir(DIR_AUDIO_RAW):
@@ -454,50 +457,6 @@ def guardar_estado(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 db = cargar_estado()
-
-# --- MODAL / DIALOGO DE AUDIOS CON DESCARGA Y ELIMINACION ---
-@st.dialog("🎧 Audios Guardados de esta Carpeta", width="large")
-def modal_audios_carpeta(nombre_materia, modulo):
-    st.markdown(f"#### 📂 Materia: **{nombre_materia}** ({modulo})")
-    st.caption("Reproduce, descarga o elimina las grabaciones registradas en esta carpeta:")
-    
-    indices_coincidentes = [
-        (idx, g) for idx, g in enumerate(db.get("grabaciones", []))
-        if g.get("materia") == nombre_materia and g.get("modulo", modulo) == modulo
-    ]
-    
-    if not indices_coincidentes:
-        st.info("No hay audios registrados todavía en esta carpeta.")
-    else:
-        for idx_db, g in reversed(indices_coincidentes):
-            with st.container():
-                c_m1, c_m2, c_m3 = st.columns([3, 1, 1])
-                with c_m1:
-                    st.markdown(f"**🎵 {g['titulo']}**")
-                    st.caption(f"📅 Fecha: {g['fecha']}")
-                    if os.path.exists(g["ruta"]):
-                        with open(g["ruta"], "rb") as f_play:
-                            st.audio(f_play.read())
-                    else:
-                        st.error("Archivo físico no encontrado.")
-                with c_m2:
-                    if os.path.exists(g["ruta"]):
-                        with open(g["ruta"], "rb") as f_dl:
-                            st.download_button(
-                                "📥 Descargar",
-                                data=f_dl.read(),
-                                file_name=os.path.basename(g["ruta"]),
-                                key=f"dl_dlg_{nombre_materia}_{idx_db}"
-                            )
-                with c_m3:
-                    if st.button("🗑️ Borrar", key=f"del_dlg_{nombre_materia}_{idx_db}"):
-                        if os.path.exists(g["ruta"]):
-                            os.remove(g["ruta"])
-                        db["grabaciones"].pop(idx_db)
-                        guardar_estado(db)
-                        st.success("Grabación eliminada.")
-                        st.rerun()
-                st.markdown("---")
 
 # --- BARRA LATERAL ---
 st.sidebar.markdown("### 🎓 Mi Perfil Académico")
@@ -634,13 +593,8 @@ with pestañas_principales[0]:
             info_mat = carpetas_modulo[nombre_mat]
 
             with tab_materia:
-                c_mat_title, c_mat_audio_btn = st.columns([3.5, 1.5])
-                with c_mat_title:
-                    st.markdown(f"### 📖 {nombre_mat}")
-                    st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
-                with c_mat_audio_btn:
-                    if st.button(f"🎧 Audios Guardados", key=f"btn_open_audios_{modulo_actual}_{nombre_mat}"):
-                        modal_audios_carpeta(nombre_mat, modulo_actual)
+                st.markdown(f"### 📖 {nombre_mat}")
+                st.caption(f"Detalle: **{info_mat.get('descripcion', 'Sin descripción')}** | Creada: {info_mat.get('fecha_creacion')}")
                 
                 nom_sesion_live = st.text_input("Tema / Título de la clase:", placeholder="Ej. Clase 1: Diagnóstico Comunitario", key=f"t_live_input_{nombre_mat}")
 
