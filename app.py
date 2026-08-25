@@ -165,40 +165,55 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
     font-weight: 700 !important;
 }
 
-/* --- TABS / PESTAÑAS: COLOR MORADO ALINEADO A LA INTERFAZ PARA INACTIVAS --- */
-button[data-baseweb="tab"] {
-    font-size: 1.05rem !important;
-    font-weight: 800 !important;
-    padding: 10px 18px !important;
-    border-radius: 8px 8px 0 0 !important;
-    transition: all 0.2s ease-in-out !important;
+/* --- FORZADO PERMANENTE DE COLOR MORADO EN TODAS LAS PESTAÑAS --- */
+div[data-testid="stTabs"] {
+    background-color: transparent !important;
 }
 
-/* Pestañas NO seleccionadas (inactivas): Morado institucional nítido */
-button[data-baseweb="tab"]:not([aria-selected="true"]),
-button[data-baseweb="tab"]:not([aria-selected="true"]) *,
-[data-testid="stTabs"] button:not([aria-selected="true"]) p,
-[data-testid="stTabs"] button:not([aria-selected="true"]) span,
-[data-testid="stTabs"] button:not([aria-selected="true"]) div {
-    color: #5b21b6 !important;
+div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 6px !important;
+    background-color: transparent !important;
+}
+
+/* PESTAÑAS INACTIVAS: SIEMPRE VISIBLES EN MORADO OSCURO */
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
+    background-color: rgba(139, 92, 246, 0.08) !important;
+    border: 1.5px solid #c4b5fd !important;
+    border-bottom: none !important;
+    border-radius: 10px 10px 0 0 !important;
+    padding: 10px 20px !important;
+    margin-right: 4px !important;
+}
+
+div[data-testid="stTabs"] button[data-baseweb="tab"] p,
+div[data-testid="stTabs"] button[data-baseweb="tab"] span,
+div[data-testid="stTabs"] button[data-baseweb="tab"] div {
+    color: #4c1d95 !important;
     font-weight: 800 !important;
+    font-size: 1.02rem !important;
     opacity: 1 !important;
+    visibility: visible !important;
 }
 
-button[data-baseweb="tab"]:not([aria-selected="true"]):hover,
-button[data-baseweb="tab"]:not([aria-selected="true"]):hover * {
-    color: #7c24ec !important;
-    background-color: rgba(124, 36, 236, 0.12) !important;
+/* PESTAÑA ACTIVA (SELECCIONADA) */
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    background-color: #ffffff !important;
+    border-top: 3.5px solid #6214c7 !important;
+    border-left: 1.5px solid #6214c7 !important;
+    border-right: 1.5px solid #6214c7 !important;
+    border-bottom: 2px solid #ffffff !important;
 }
 
-/* Pestaña seleccionada (activa): Morado con línea indicadora */
-button[data-baseweb="tab"][aria-selected="true"],
-button[data-baseweb="tab"][aria-selected="true"] *,
-[data-testid="stTabs"] button[aria-selected="true"] p,
-[data-testid="stTabs"] button[aria-selected="true"] span {
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] p,
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] span,
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] div {
     color: #6214c7 !important;
-    border-bottom: 3.5px solid #6214c7 !important;
     font-weight: 900 !important;
+}
+
+/* EFECTO HOVER */
+div[data-testid="stTabs"] button[data-baseweb="tab"]:hover {
+    background-color: #ede9fe !important;
 }
 
 /* DESPLEGABLES */
