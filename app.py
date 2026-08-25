@@ -108,7 +108,7 @@ def estructurar_apuntes_groq(client, texto_transcrito, materia, titulo, borrador
 
     raise Exception(f"Fallo al conectar con los modelos de Groq. Detalle: {ultimo_error}")
 
-# --- ESTILOS VISUALES SKILLPATH ---
+# --- ESTILOS VISUALES SKILLPATH (CONTRASTE DEFINITIVO EN PESTAÑAS) ---
 st.markdown("""
 <style>
 html, body, [class*="css"], .stApp { 
@@ -165,37 +165,39 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
     font-weight: 700 !important;
 }
 
-/* TABS / PESTAÑAS - COLOR NEGRO PARA PESTAÑAS NO SELECCIONADAS */
+/* --- TABS / PESTAÑAS: COLOR NEGRO DEFINITIVO PARA INACTIVAS --- */
 button[data-baseweb="tab"] {
     font-size: 1.05rem !important;
     font-weight: 800 !important;
-    color: #000000 !important; /* Negro de alto contraste */
     padding: 10px 18px !important;
     border-radius: 8px 8px 0 0 !important;
-    transition: all 0.2s ease-in-out !important;
 }
 
-button[data-baseweb="tab"] * {
+/* Forzar negro puro a cualquier elemento interno de pestañas NO seleccionadas */
+button[data-baseweb="tab"]:not([aria-selected="true"]),
+button[data-baseweb="tab"]:not([aria-selected="true"]) *,
+[data-testid="stTabs"] button:not([aria-selected="true"]) p,
+[data-testid="stTabs"] button:not([aria-selected="true"]) span,
+[data-testid="stTabs"] button:not([aria-selected="true"]) div {
     color: #000000 !important;
     font-weight: 800 !important;
+    opacity: 1 !important;
 }
 
-button[data-baseweb="tab"]:hover {
+button[data-baseweb="tab"]:not([aria-selected="true"]):hover,
+button[data-baseweb="tab"]:not([aria-selected="true"]):hover * {
     color: #6214c7 !important;
-    background-color: rgba(139, 92, 246, 0.12) !important;
+    background-color: rgba(139, 92, 246, 0.1) !important;
 }
 
-button[data-baseweb="tab"]:hover * {
+/* Pestaña seleccionada (activa) */
+button[data-baseweb="tab"][aria-selected="true"],
+button[data-baseweb="tab"][aria-selected="true"] *,
+[data-testid="stTabs"] button[aria-selected="true"] p,
+[data-testid="stTabs"] button[aria-selected="true"] span {
     color: #6214c7 !important;
-}
-
-button[data-baseweb="tab"][aria-selected="true"] {
-    color: #6214c7 !important; /* Morado marca para seleccionada */
     border-bottom: 3.5px solid #6214c7 !important;
-}
-
-button[data-baseweb="tab"][aria-selected="true"] * {
-    color: #6214c7 !important;
+    font-weight: 800 !important;
 }
 
 /* DESPLEGABLES */
