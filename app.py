@@ -108,7 +108,7 @@ def estructurar_apuntes_groq(client, texto_transcrito, materia, titulo, borrador
 
     raise Exception(f"Fallo al conectar con los modelos de Groq. Detalle: {ultimo_error}")
 
-# --- ESTILOS VISUALES SKILLPATH (LAVANDA & MORADO CON CONTRASTE MEJORADO) ---
+# --- ESTILOS VISUALES SKILLPATH ---
 st.markdown("""
 <style>
 html, body, [class*="css"], .stApp { 
@@ -165,24 +165,37 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
     font-weight: 700 !important;
 }
 
-/* TABS / PESTAÑAS - CONTRASTE Y LEGIBILIDAD ARREGLADA */
+/* TABS / PESTAÑAS - COLOR NEGRO PARA PESTAÑAS NO SELECCIONADAS */
 button[data-baseweb="tab"] {
     font-size: 1.05rem !important;
-    font-weight: 700 !important;
-    color: #475569 !important; /* Gris oscuro nítido para carpetas NO seleccionadas */
+    font-weight: 800 !important;
+    color: #000000 !important; /* Negro de alto contraste */
     padding: 10px 18px !important;
     border-radius: 8px 8px 0 0 !important;
     transition: all 0.2s ease-in-out !important;
 }
 
+button[data-baseweb="tab"] * {
+    color: #000000 !important;
+    font-weight: 800 !important;
+}
+
 button[data-baseweb="tab"]:hover {
     color: #6214c7 !important;
-    background-color: rgba(139, 92, 246, 0.08) !important;
+    background-color: rgba(139, 92, 246, 0.12) !important;
+}
+
+button[data-baseweb="tab"]:hover * {
+    color: #6214c7 !important;
 }
 
 button[data-baseweb="tab"][aria-selected="true"] {
-    color: #6214c7 !important; /* Morado marca seleccionado */
-    border-bottom: 3px solid #6214c7 !important;
+    color: #6214c7 !important; /* Morado marca para seleccionada */
+    border-bottom: 3.5px solid #6214c7 !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] * {
+    color: #6214c7 !important;
 }
 
 /* DESPLEGABLES */
@@ -286,7 +299,7 @@ div[data-testid="stAudioInput"] * {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
-/* CUADRO DE APUNTES CON SCROLLBAR MORADA NÍTIDA */
+/* CUADRO DE APUNTES CON SCROLLBAR MORADA */
 .live-notes-box {
     background-color: #ffffff;
     border: 2px solid #8b5cf6;
@@ -300,11 +313,10 @@ div[data-testid="stAudioInput"] * {
     line-height: 1.6;
     box-shadow: 0 4px 14px rgba(139, 92, 246, 0.1);
     margin-top: 10px;
-    scrollbar-color: #8b5cf6 #ede9fe; /* Para Firefox */
+    scrollbar-color: #8b5cf6 #ede9fe;
     scrollbar-width: thin;
 }
 
-/* Scrollbar estilizada para Chrome/Safari/Edge */
 .live-notes-box::-webkit-scrollbar {
     width: 10px;
 }
@@ -367,21 +379,23 @@ def guardar_estado(data):
 
 db = cargar_estado()
 
-# --- MODAL / DIALOGO DE AUDIOS DE LA CARPETA ---
+# --- MODAL / DIALOGO DE AUDIOS CON DESCARGA Y ELIMINACION ---
 @st.dialog("🎧 Audios Guardados de esta Carpeta", width="large")
 def modal_audios_carpeta(nombre_materia, modulo):
     st.markdown(f"#### 📂 Materia: **{nombre_materia}** ({modulo})")
-    st.caption("Reproduce y descarga todas las grabaciones originales asociadas a esta carpeta:")
+    st.caption("Reproduce, descarga o elimina las grabaciones registradas en esta carpeta:")
     
-    audios_mat = [g for g in db.get("grabaciones", []) if g.get("materia") == nombre_materia and g.get("modulo", modulo) == modulo]
+    indices_coincidentes = [
+        (idx, g) for idx, g in enumerate(db.get("grabaciones", []))
+        if g.get("materia") == nombre_materia and g.get("modulo", modulo) == modulo
+    ]
     
-    if not audios_mat:
+    if not indices_coincidentes:
         st.info("No hay audios registrados todavía en esta carpeta.")
     else:
-        for idx, g in enumerate(reversed(audios_mat)):
-            idx_real = len(audios_mat) - 1 - idx
+        for idx_db, g in reversed(indices_coincidentes):
             with st.container():
-                c_m1, c_m2 = st.columns([3.5, 1.5])
+                c_m1, c_m2, c_m3 = st.columns([3, 1, 1])
                 with c_m1:
                     st.markdown(f"**🎵 {g['titulo']}**")
                     st.caption(f"📅 Fecha: {g['fecha']}")
@@ -397,8 +411,16 @@ def modal_audios_carpeta(nombre_materia, modulo):
                                 "📥 Descargar",
                                 data=f_dl.read(),
                                 file_name=os.path.basename(g["ruta"]),
-                                key=f"dl_dlg_{nombre_materia}_{idx_real}"
+                                key=f"dl_dlg_{nombre_materia}_{idx_db}"
                             )
+                with c_m3:
+                    if st.button("🗑️ Borrar", key=f"del_dlg_{nombre_materia}_{idx_db}"):
+                        if os.path.exists(g["ruta"]):
+                            os.remove(g["ruta"])
+                        db["grabaciones"].pop(idx_db)
+                        guardar_estado(db)
+                        st.success("Grabación eliminada.")
+                        st.rerun()
                 st.markdown("---")
 
 # --- BARRA LATERAL ---
