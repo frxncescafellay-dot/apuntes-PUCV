@@ -1,6 +1,14 @@
 import os
 import io
 import json
+import zipfile
+import threading
+import time
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
 from datetime import datetime
 import pytz
 import pandas as pd
@@ -26,6 +34,85 @@ for d in [DIR_BASE, DIR_AUDIO_RAW, DIR_PERFILES]:
     os.makedirs(d, exist_ok=True)
 
 MODELO_WHISPER = "whisper-large-v3"
+CORREO_DESTINO_BACKUP = "francesca.fellay.b@mail.pucv.cl"
+
+# --- FUNCIONES DE RESPALDO Y ZIP COMPLETO ---
+def generar_zip_respaldo_completo():
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        if os.path.exists(DIR_BASE):
+            for root, _, files in os.walk(DIR_BASE):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, start=DIR_BASE)
+                    zip_file.write(file_path, arcname=arcname)
+    zip_buffer.seek(0)
+    return zip_buffer.getvalue()
+
+def restaurar_desde_zip_completo(archivo_zip_bytes):
+    with zipfile.ZipFile(io.BytesIO(archivo_zip_bytes), "r") as zip_file:
+        zip_file.extractall(DIR_BASE)
+
+def enviar_correo_backup(zip_bytes, fecha_str):
+    smtp_server = st.secrets.get("SMTP_SERVER", os.environ.get("SMTP_SERVER", "smtp.gmail.com"))
+    smtp_port = int(st.secrets.get("SMTP_PORT", os.environ.get("SMTP_PORT", 587)))
+    smtp_user = st.secrets.get("SMTP_USER", os.environ.get("SMTP_USER", ""))
+    smtp_password = st.secrets.get("SMTP_PASSWORD", os.environ.get("SMTP_PASSWORD", ""))
+    
+    if not smtp_user or not smtp_password:
+        return False, "Faltan credenciales SMTP (SMTP_USER y SMTP_PASSWORD en Secrets)"
+
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = smtp_user
+        msg["To"] = CORREO_DESTINO_BACKUP
+        msg["Subject"] = f"📦 Backup Diario Automatizado — SkillPath Apuntes ({fecha_str})"
+
+        cuerpo = f"""
+        Estimada Francesca Fellay,
+
+        Adjunto se encuentra el respaldo diario completo de todos los apuntes, audios grabados 
+        y perfiles de SkillPath correspondiente a las 07:00 AM ({fecha_str}).
+
+        Este archivo .zip contiene la base de datos completa y puede ser cargado en el sistema 
+        para restaurar todos los registros en caso de reinicio de la plataforma.
+        """
+        msg.attach(MIMEText(cuerpo, "plain", "utf-8"))
+
+        part = MIMEBase("application", "octet-stream")
+        part.set_payload(zip_bytes)
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition", f"attachment; filename=backup_apuntes_{datetime.now().strftime('%Y%m%d')}.zip")
+        msg.attach(part)
+
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+        server.quit()
+        return True, "Enviado con éxito"
+    except Exception as e:
+        return False, str(e)
+
+# --- TAREA EN SEGUNDO PLANO: ENVIO AUTOMATICO A LAS 07:00 AM (HORA CHILE) ---
+if "scheduler_iniciado" not in st.session_state:
+    st.session_state.scheduler_iniciado = True
+    def daemon_backup_diario():
+        ultimo_dia_enviado = None
+        tz_chile = pytz.timezone("America/Santiago")
+        while True:
+            ahora = datetime.now(tz_chile)
+            dia_actual = ahora.strftime("%Y-%m-%d")
+            # Envio diario a las 07:00 AM hora de Chile
+            if ahora.hour == 7 and ultimo_dia_enviado != dia_actual:
+                zip_data = generar_zip_respaldo_completo()
+                exito, _ = enviar_correo_backup(zip_data, ahora.strftime("%d/%m/%Y %H:%M"))
+                if exito:
+                    ultimo_dia_enviado = dia_actual
+            time.sleep(30)
+            
+    hilo = threading.Thread(target=daemon_backup_diario, daemon=True)
+    hilo.start()
 
 # --- OBTENCION SEGURA DE API KEY GROQ ---
 def obtener_api_key():
@@ -186,7 +273,7 @@ section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
     background-color: #c084fc !important;
 }
 
-/* Pestañas inactivas: fondo lavanda claro visible, texto morado */
+/* Pestañas inactivas */
 [data-testid="stTabs"] button[role="tab"],
 [data-testid="stTabs"] button[data-baseweb="tab"],
 div[data-testid="stTabs"] button {
@@ -212,7 +299,7 @@ div[data-testid="stTabs"] button {
     visibility: visible !important;
 }
 
-/* Pestaña seleccionada: fondo morado, texto blanco */
+/* Pestaña seleccionada */
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"],
 [data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"],
 div[data-testid="stTabs"] button[aria-selected="true"] {
@@ -530,6 +617,40 @@ with st.sidebar.expander("⚙️ Editar Datos del Perfil"):
         guardar_estado(db)
         st.success("Perfil actualizado.")
         st.rerun()
+
+# --- GESTION DE COPIA DE SEGURIDAD EN LA BARRA LATERAL ---
+st.sidebar.markdown("<hr style='border:0.5px solid rgba(255,255,255,0.2); margin:16px 0;'>", unsafe_allow_html=True)
+st.sidebar.markdown("### 📦 Copia de Seguridad")
+
+zip_backup_bytes = generar_zip_respaldo_completo()
+st.sidebar.download_button(
+    label="📦 Descargar Todos los Apuntes & Audios (.zip)",
+    data=zip_backup_bytes,
+    file_name=f"backup_apuntes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
+    mime="application/zip",
+    use_container_width=True
+)
+
+with st.sidebar.expander("🔄 Restaurar Respaldo (.zip)"):
+    archivo_restore = st.file_uploader("Cargar archivo .zip de respaldo:", type=["zip"], key="up_zip_restore_notes")
+    if archivo_restore is not None:
+        if st.button("Restaurar Todos los Apuntes", use_container_width=True):
+            restaurar_desde_zip_completo(archivo_restore.getvalue())
+            db = cargar_estado()
+            st.success("¡Base de datos y grabaciones restauradas exitosamente!")
+            st.rerun()
+
+with st.sidebar.expander("📧 Enviar Backup al Correo"):
+    st.caption(f"Destinatario: **{CORREO_DESTINO_BACKUP}** (Automático a las 07:00 AM)")
+    if st.button("Enviar Respaldo Ahora"):
+        with st.spinner("Enviando copia al correo..."):
+            tz_cl = pytz.timezone("America/Santiago")
+            hora_fmt = datetime.now(tz_cl).strftime("%d/%m/%Y %H:%M:%S")
+            ok, msj = enviar_correo_backup(zip_backup_bytes, hora_fmt)
+            if ok:
+                st.success("¡Correo de respaldo enviado con éxito!")
+            else:
+                st.error(f"Detalle: {msj}")
 
 st.sidebar.markdown("<hr style='border:0.5px solid rgba(255,255,255,0.2); margin:16px 0;'>", unsafe_allow_html=True)
 
